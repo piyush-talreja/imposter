@@ -1,15 +1,19 @@
 import { DEFAULT_SETTINGS, type Game, type Role } from './engine';
 import {
   castVote,
+  closeVote,
   continueGame,
   currentSpeaker,
   guess,
+  leave,
   markSeen,
   openVote,
   publicView,
   skipTurn,
+  stamp,
   submitClue,
   suspect,
+  timeout,
   validateClue,
   type OnlineState,
 } from './online';
@@ -49,6 +53,9 @@ const state = (overrides: Partial<OnlineState> = {}, game: Partial<Game> = {}): 
   votes: {},
   result: null,
   roleCounts: { imposter: 1, undercover: 1 },
+  timers: { clue: null, vote: null },
+  deadline: null,
+  left: [],
   ...overrides,
 });
 
@@ -272,6 +279,131 @@ describe('guess, rounds and the end', () => {
     expect(view.eliminated).toEqual([{ id: 'fay', role: 'imposter' }]);
     // No field maps players to roles, apart from those who are out.
     expect(JSON.stringify(view)).not.toMatch(/"(eli|ana|ben|cy|dee)":"(villager|undercover|imposter)"/);
+  });
+});
+
+describe('timers', () => {
+  const timed = { timers: { clue: 30, vote: 60 } };
+
+  it('a new clue turn and a new vote each start their own deadline', () => {
+    const dealt = state({ ...timed, phase: 'deal' });
+    let s = stamp(dealt, { ...dealt, phase: 'clues' }, 1000);
+    expect(s.deadline).toBe(31000);
+    const next = submitClue(s, 'ana', 'cheesy');
+    expect(stamp(s, next, 5000).deadline).toBe(35000);
+    const discussing = { ...next, phase: 'discuss' as const };
+    s = stamp(next, discussing, 9000);
+    expect(s.deadline).toBeNull();
+    expect(stamp(s, openVote(s), 10000).deadline).toBe(70000);
+  });
+
+  it('no timers means no deadline', () => {
+    const dealt = state({ phase: 'deal' });
+    expect(stamp(dealt, { ...dealt, phase: 'clues' }, 1000).deadline).toBeNull();
+  });
+
+  it('time up on a clue skips it; too early is refused', () => {
+    const s = state({ ...timed, phase: 'clues', deadline: 5000 });
+    expect(errorCode(() => timeout(s, 4999))).toBe('not_yet');
+    const skipped = timeout(s, 5000);
+    expect(skipped.clues[0]).toEqual({ round: 1, by: 'ana', text: null });
+  });
+
+  it('time up on a vote counts the votes already cast', () => {
+    let s = openVote(allClues(state({ phase: 'clues' })));
+    s = castVote(castVote(s, 'ana', 'fay'), 'ben', 'fay');
+    const closed = timeout({ ...s, deadline: 1 }, 2);
+    expect(closed.result).toMatchObject({ out: 'fay', tally: { fay: 2 } });
+  });
+
+  it('a vote nobody took part in eliminates nobody', () => {
+    const s = closeVote(openVote(allClues(state({ phase: 'clues' }))));
+    expect(s.result).toEqual({ round: 1, out: null, tally: {} });
+  });
+});
+
+describe('leaving mid-game', () => {
+  it('in the deal: the rest can start without them', () => {
+    let s = state();
+    for (const id of ['ana', 'ben', 'cy', 'dee', 'fay']) s = markSeen(s, id);
+    s = leave(s, 'eli');
+    expect(s.phase).toBe('clues');
+    expect(publicView(s).left).toEqual(['eli']);
+  });
+
+  it('the imposter leaving: villagers win, and the bonus round still hunts the undercover', () => {
+    const s = leave(state({ phase: 'clues' }), 'fay');
+    expect(s.game.winner).toBe('villagers');
+    expect(s.phase).toBe('clues');
+    expect(s.game.over).toBe(false);
+  });
+
+  it('on their clue turn: the next player is up', () => {
+    const s = leave(state({ phase: 'clues' }), 'ana');
+    expect(currentSpeaker(s)).toBe('ben');
+  });
+
+  it('before the current speaker: the same speaker keeps the turn', () => {
+    let s = state({ phase: 'clues' });
+    s = submitClue(submitClue(s, 'ana', 'a'), 'ben', 'b');
+    expect(currentSpeaker(s)).toBe('cy');
+    s = leave(s, 'ana');
+    expect(currentSpeaker(s)).toBe('cy');
+  });
+
+  it('as the last speaker: discussion opens', () => {
+    let s = state({ phase: 'clues' });
+    for (const id of ['ana', 'ben', 'cy', 'dee', 'eli']) s = submitClue(s, id, `c${id}`);
+    expect(currentSpeaker(s)).toBe('fay');
+    // Fay's the imposter: villagers win the main round, and the undercover bonus round goes on.
+    s = leave(s, 'fay');
+    expect(s.phase).toBe('discuss');
+  });
+
+  it('during the vote: their vote is dropped and the rest can finish', () => {
+    let s = openVote(allClues(state({ phase: 'clues' })));
+    s = castVote(s, 'dee', 'ana');
+    for (const id of ['ana', 'ben', 'cy', 'eli']) s = castVote(s, id, 'fay');
+    // Fay hasn't voted yet; Dee (who has) leaves, so their vote is dropped.
+    s = leave(s, 'dee');
+    expect(s.phase).toBe('vote');
+    s = castVote(s, 'fay', 'ana');
+    expect(s.result).toMatchObject({ out: 'fay', tally: { fay: 4, ana: 1 } });
+  });
+
+  it('the last voter leaving closes the vote', () => {
+    let s = openVote(allClues(state({ phase: 'clues' })));
+    for (const id of ['ana', 'ben', 'cy', 'dee']) s = castVote(s, id, 'fay');
+    s = castVote(s, 'fay', 'ana');
+    s = leave(s, 'eli');
+    expect(s.result).toMatchObject({ out: 'fay', tally: { fay: 4, ana: 1 } });
+  });
+
+  it('votes and suspicion aimed at someone who leaves are dropped', () => {
+    let s = openVote(suspect(allClues(state({ phase: 'clues' })), 'ana', 'dee'));
+    s = castVote(castVote(s, 'ana', 'dee'), 'ben', 'dee');
+    s = leave(s, 'dee');
+    expect(s.votes).toEqual({});
+    expect(publicView(s).suspicion).toEqual({});
+  });
+
+  it('an imposter who leaves instead of guessing gives up the guess', () => {
+    const caught = everyoneVotes(openVote(allClues(state({ phase: 'clues' }))), 'fay');
+    expect(caught.phase).toBe('guess');
+    const s = leave(caught, 'fay');
+    // Already out, so leaving changes nothing about the result...
+    expect(s).toBe(caught);
+  });
+
+  it('a villager leaving can hand the imposters the win', () => {
+    const small = state(
+      { phase: 'clues' },
+      { roles: { ana: 'villager', ben: 'villager', fay: 'imposter' }, order: ['ana', 'ben', 'fay'] },
+    );
+    const s = leave(small, 'ana');
+    expect(s.phase).toBe('over');
+    expect(s.game.winner).toBe('imposters');
+    expect(publicView(s).left).toEqual(['ana']);
   });
 });
 

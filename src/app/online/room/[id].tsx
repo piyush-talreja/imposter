@@ -24,7 +24,7 @@ const LEAVE = {
 export default function Lobby() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { onlineName } = useGame();
-  const { me, room, players, game, online, connection, kicked, gone } = useRoom(id, onlineName);
+  const { me, room, players, names, game, online, connection, kicked, gone } = useRoom(id, onlineName);
   const [showQr, setShowQr] = useState(false);
   const [removing, setRemoving] = useState<RoomPlayer | null>(null);
   const [busy, setBusy] = useState(false);
@@ -76,7 +76,18 @@ export default function Lobby() {
   }
 
   if (room?.status === 'playing') {
-    if (game && me && id) return <OnlineGame roomId={id} me={me} room={room} players={players} game={game} />;
+    if (game && me && id)
+      return (
+        <OnlineGame
+          roomId={id}
+          me={me}
+          room={room}
+          players={players}
+          names={names}
+          game={game}
+          connection={connection}
+        />
+      );
     // The host just pressed Start; the server is dealing.
     return (
       <Screen kicker={`ROOM ${room.code}`} backLabel="Leave" onBack={leave} confirmBack={LEAVE}>

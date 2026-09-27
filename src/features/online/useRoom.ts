@@ -2,7 +2,7 @@ import { type RealtimeChannel } from '@supabase/supabase-js';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ensureSignedIn, supabase } from './client';
-import { fetchRoom } from './rooms';
+import { fetchRoom, gameAction } from './rooms';
 import { type PublicView } from '@/features/game/online';
 
 import { type Room, type RoomPlayer } from './types';
@@ -13,6 +13,8 @@ export type RoomState = {
   me: string | null;
   room: Room | null;
   players: RoomPlayer[];
+  /** Names of everyone who has been in the room (including players who left). */
+  names: Record<string, string>;
   /** The current game's public view (no secrets), when one exists. */
   game: PublicView | null;
   /** Players whose app is open and connected right now (Realtime Presence). */
@@ -38,6 +40,7 @@ export function useRoom(
     room: null,
     players: [],
     game: null,
+    names: {},
     online: new Set(),
     connection: 'connecting',
     kicked: false,
@@ -47,8 +50,8 @@ export function useRoom(
   const refresh = useCallback(async () => {
     if (!roomId) return;
     try {
-      const { room, players, game } = await fetchRoom(roomId);
-      setState((s) => ({ ...s, room, players, game, gone: !room || room.status === 'closed' }));
+      const { room, players, names, game } = await fetchRoom(roomId);
+      setState((s) => ({ ...s, room, players, names, game, gone: !room || room.status === 'closed' }));
     } catch {
       setState((s) => ({ ...s, connection: 'reconnecting' }));
     }
@@ -104,5 +107,40 @@ export function useRoom(
     };
   }, [roomId, name, refresh]);
 
+  useHostWatch(roomId, state);
+
   return { ...state, refresh };
+}
+
+const HEARTBEAT_MS = 15_000;
+const HOST_GRACE_MS = 45_000;
+
+/**
+ * Keep a room hosted. The host's app checks in every 15 s. If the host has been
+ * offline for 45 s, the first online player by seat asks to take over; others wait
+ * a little longer in case that one is gone too. The server has the final say.
+ */
+function useHostWatch(roomId: string | undefined, s: RoomState) {
+  const isHost = !!s.room && s.room.host_id === s.me;
+  const hostOnline = !!s.room && s.online.has(s.room.host_id);
+  const open = !!s.room && s.room.status !== 'closed';
+
+  useEffect(() => {
+    if (!roomId || !isHost || !open) return;
+    const beat = () => gameAction(roomId, { action: 'heartbeat' }).catch(() => {});
+    beat();
+    const id = setInterval(beat, HEARTBEAT_MS);
+    return () => clearInterval(id);
+  }, [roomId, isHost, open]);
+
+  const onlineSeats = s.players.filter((p) => s.online.has(p.user_id) && p.user_id !== s.room?.host_id);
+  const myRank = onlineSeats.findIndex((p) => p.user_id === s.me);
+  useEffect(() => {
+    if (!roomId || isHost || hostOnline || !open || myRank < 0 || s.connection !== 'online') return;
+    const id = setTimeout(
+      () => gameAction(roomId, { action: 'claim-host' }).catch(() => {}),
+      HOST_GRACE_MS + myRank * HEARTBEAT_MS,
+    );
+    return () => clearTimeout(id);
+  }, [roomId, isHost, hostOnline, open, myRank, s.connection]);
 }

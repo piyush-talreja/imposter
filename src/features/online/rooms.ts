@@ -23,9 +23,11 @@ export const createRoom = (name: string, settings: OnlineSettings) =>
 export const joinRoom = (code: string, name: string) =>
   rpc<Joined[]>('join_room', { p_code: code, p_name: name }).then(first);
 
-export const leaveRoom = (roomId: string) => rpc<void>('leave_room', { p_room: roomId });
+// Leaving and removal go through the game-action function, so a game in progress
+// drops the player cleanly before they leave the room.
+export const leaveRoom = (roomId: string) => invoke<{ ok: true }>(roomId, { action: 'leave' });
 export const kickPlayer = (roomId: string, userId: string) =>
-  rpc<void>('kick_player', { p_room: roomId, p_user: userId });
+  invoke<{ ok: true }>(roomId, { action: 'kick', target: userId });
 export const updateSettings = (roomId: string, settings: OnlineSettings) =>
   rpc<void>('update_settings', { p_room: roomId, p_settings: settings });
 export const startGame = (roomId: string) => rpc<void>('start_game', { p_room: roomId });
@@ -33,9 +35,14 @@ export const startGame = (roomId: string) => rpc<void>('start_game', { p_room: r
 /** Current room and active players (readable only by members, via RLS). */
 export async function fetchRoom(
   roomId: string,
-): Promise<{ room: Room | null; players: RoomPlayer[]; game: PublicView | null }> {
+): Promise<{
+  room: Room | null;
+  players: RoomPlayer[];
+  names: Record<string, string>;
+  game: PublicView | null;
+}> {
   const sb = supabase();
-  const [room, players] = await Promise.all([
+  const [room, players, everyone] = await Promise.all([
     sb
       .from('rooms')
       .select('id, code, host_id, status, settings, current_game, scores')
@@ -48,6 +55,8 @@ export async function fetchRoom(
       .is('left_at', null)
       .eq('kicked', false)
       .order('seat'),
+    // Everyone who has been in the room, so players who left keep their names on screen.
+    sb.from('room_players').select('user_id, name').eq('room_id', roomId),
   ]);
   if (room.error) throw room.error;
   if (players.error) throw players.error;
@@ -58,13 +67,25 @@ export async function fetchRoom(
     if (g.error) throw g.error;
     game = (g.data?.public_state as PublicView) ?? null;
   }
-  return { room: (room.data as Room) ?? null, players: (players.data as RoomPlayer[]) ?? [], game };
+  const names = Object.fromEntries((everyone.data ?? []).map((p) => [p.user_id, p.name as string]));
+  return { room: (room.data as Room) ?? null, players: (players.data as RoomPlayer[]) ?? [], names, game };
 }
 
 // ---------------------------------------------------------------- game actions (Edge Function)
 
 export type GameAction =
-  | { action: 'start' | 'seen' | 'skip' | 'open-vote' | 'continue' | 'back-to-lobby' }
+  | {
+      action:
+        | 'start'
+        | 'seen'
+        | 'skip'
+        | 'open-vote'
+        | 'continue'
+        | 'back-to-lobby'
+        | 'tick'
+        | 'heartbeat'
+        | 'claim-host';
+    }
   | { action: 'clue'; text: string }
   | { action: 'suspect'; clueBy: string | null }
   | { action: 'vote'; target: string }

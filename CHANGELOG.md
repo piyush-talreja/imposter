@@ -7,6 +7,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- Phase 2, M4: **resilience for online games**
+  - **Timers:** optional clue and vote timers, with a countdown on every phone. When time runs out, an idle turn is skipped and the vote closes with the votes cast so far; the server's clock decides
+  - **Leaving:** a player who leaves or is removed mid-game drops out cleanly (their role is shown, and their vote and votes against them are dropped); if the Imposter leaves, the Villagers win
+  - **Host handover:** if the host goes silent for 45 seconds, another player takes over hosting automatically
+  - **Your word:** hold "Your word" at any point to peek at your card again
+  - **Offline banner** during games
+  - **Cleanup:** rooms are deleted after 24 hours, and stale anonymous accounts after 30 days
+
 - Phase 2, M3: **the online game**. Start deals a private card to every phone (hold to see, then "I've seen it"). Clues go round in turn, typed onto a shared clue board or spoken out loud. In discussion, tap a clue that seems off and everyone sees the count; the host opens a secret vote ("3 of 5 voted"), and a tie means nobody is out. The eliminated player's role is revealed; a caught Imposter types a guess on their own phone; the bonus round hunts the Undercover; results show the words and running room scores; back to the lobby for the next game. The server referees every action, keeps secrets server-side, and counts simultaneous votes safely
 
 - Phase 2, M2: online rooms and lobby. **Play online** from the home screen; host a room with the same settings plus clue mode (Typed or Spoken) and optional timers; join by 4-letter code, shared link or QR code. The live lobby shows who's online, the Host and You badges, and host controls (settings, remove a player, start). Rejoining, removal notices, host handover when the host leaves, waiting mid-game, and friendly errors are all covered. Room rules are enforced by server functions (32 new database tests) and checked with a 4-player browser test
@@ -20,6 +28,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - Reveal is now a fade: the cover fades as it peels and the word fades up; the card is no longer tilted or scaled
 
 ### Fixed
+
 - Creating or joining a room failed with "Something went wrong" when the device held a sign-in for a player that no longer exists (for example after the backend was reset); the app now checks the saved sign-in once per launch and starts a fresh one if needed
 - Back did nothing on a screen opened directly from a link or after a refresh; it now goes home
 
