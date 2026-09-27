@@ -115,11 +115,13 @@ pnpm functions:serve     # run the game-action Edge Function (keep this running)
 pnpm test:online         # end-to-end checks against the local stack, like a phone
 ```
 
-Rooms and the lobby (M2) are playable in the browser. With `.env` pointing at the local stack:
+Online games (M2 rooms and lobby, M3 the game) are playable in the browser. With `.env` pointing at the local stack:
 
 ```bash
 pnpm web                         # or: pnpm export:web && node e2e/serve.mjs dist 8765
 pnpm test:e2e:rooms              # 4 players in 4 browser sessions (needs the build served on :8765)
+pnpm test:online:game            # a whole 5-player game through the API
+pnpm test:e2e:game               # the same game in 5 browser sessions
 ```
 
 Home → **Play online** → Host or Join. Share the 4-letter code, the link, or the QR code. Open more browser windows (or private windows) to add players.

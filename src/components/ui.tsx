@@ -116,7 +116,9 @@ export function Screen({
   children: ReactNode;
 }) {
   const [asking, setAsking] = useState(false);
-  const leave = onBack === undefined ? () => router.back() : onBack;
+  // Opened directly (a link or a refresh) there's nothing to go back to: go home instead.
+  const leave =
+    onBack === undefined ? () => (router.canGoBack() ? router.back() : router.replace('/')) : onBack;
   const back = leave && confirmBack ? () => setAsking(true) : leave;
   const body = <View style={styles.body}>{children}</View>;
   return (

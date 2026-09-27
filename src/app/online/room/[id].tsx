@@ -9,7 +9,8 @@ import { Body, Button, Card, ConfirmDialog, Label, Pop, Screen } from '@/compone
 import { MIN_PLAYERS } from '@/features/game/engine';
 import { useGame } from '@/features/game/store';
 import { friendlyError } from '@/features/online/errors';
-import { kickPlayer, leaveRoom, startGame } from '@/features/online/rooms';
+import { OnlineGame } from '@/features/online/OnlineGame';
+import { gameAction, kickPlayer, leaveRoom } from '@/features/online/rooms';
 import { type RoomPlayer } from '@/features/online/types';
 import { useRoom } from '@/features/online/useRoom';
 import { OUTLINE, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
@@ -23,7 +24,7 @@ const LEAVE = {
 export default function Lobby() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { onlineName } = useGame();
-  const { me, room, players, online, connection, kicked, gone } = useRoom(id, onlineName);
+  const { me, room, players, game, online, connection, kicked, gone } = useRoom(id, onlineName);
   const [showQr, setShowQr] = useState(false);
   const [removing, setRemoving] = useState<RoomPlayer | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,19 +75,14 @@ export default function Lobby() {
     );
   }
 
-  // M2 stops at the start line; M3 deals the cards.
   if (room?.status === 'playing') {
-    const waiting = players.find((p) => p.user_id === me)?.waiting;
+    if (game && me && id) return <OnlineGame roomId={id} me={me} room={room} players={players} game={game} />;
+    // The host just pressed Start; the server is dealing.
     return (
       <Screen kicker={`ROOM ${room.code}`} backLabel="Leave" onBack={leave} confirmBack={LEAVE}>
         <Card style={styles.center}>
           <Character color={colors.pink} look="mask" size={80} />
-          <Text style={styles.big}>{waiting ? 'Game in progress' : 'Game starting…'}</Text>
-          <Body style={styles.muted}>
-            {waiting
-              ? 'You’ll be dealt into the next game.'
-              : 'Online games arrive in the next update. Stay tuned!'}
-          </Body>
+          <Text style={styles.big}>Dealing…</Text>
         </Card>
       </Screen>
     );
@@ -105,7 +101,7 @@ export default function Lobby() {
             <>
               <Button
                 label={onlineCount >= MIN_PLAYERS ? 'Start' : `Waiting for ${MIN_PLAYERS - onlineCount} more`}
-                onPress={() => id && act(() => startGame(id))}
+                onPress={() => id && act(() => gameAction(id, { action: 'start' }))}
                 disabled={busy || onlineCount < MIN_PLAYERS}
               />
               <Button

@@ -1,6 +1,7 @@
 {
   "imports": {
     "@/features/words/words": "../../../src/features/words/words.ts",
+    "../../../src/features/game/engine": "../../../src/features/game/engine.ts",
     "@/": "../../../src/",
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2"
   }

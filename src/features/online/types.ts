@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS, type Settings } from '@/features/game/engine';
+import { type ClueMode } from '@/features/game/online';
 
-export type ClueMode = 'typed' | 'spoken';
+export type { ClueMode };
 
 /** Room settings: the pass-and-play settings plus how an online round is run. */
 export type OnlineSettings = Settings & {
@@ -26,6 +27,9 @@ export type Room = {
   host_id: string;
   status: RoomStatus;
   settings: OnlineSettings;
+  current_game: string | null;
+  /** Running totals for this room session: user id → points. */
+  scores: Record<string, number>;
 };
 
 export type RoomPlayer = {

@@ -59,7 +59,9 @@
     "test:db": "supabase test db",
     "functions:serve": "supabase functions serve --no-verify-jwt",
     "test:online": "node supabase/tests/smoke.mjs",
-    "test:e2e:rooms": "node e2e/rooms.mjs"
+    "test:e2e:rooms": "node e2e/rooms.mjs",
+    "test:online:game": "node supabase/tests/game.mjs",
+    "test:e2e:game": "node e2e/game.mjs"
   },
   "private": true,
   "jest": {

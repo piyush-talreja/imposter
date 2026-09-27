@@ -7,6 +7,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- Phase 2, M3: **the online game**. Start deals a private card to every phone (hold to see, then "I've seen it"). Clues go round in turn, typed onto a shared clue board or spoken out loud. In discussion, tap a clue that seems off and everyone sees the count; the host opens a secret vote ("3 of 5 voted"), and a tie means nobody is out. The eliminated player's role is revealed; a caught Imposter types a guess on their own phone; the bonus round hunts the Undercover; results show the words and running room scores; back to the lobby for the next game. The server referees every action, keeps secrets server-side, and counts simultaneous votes safely
+
 - Phase 2, M2: online rooms and lobby. **Play online** from the home screen; host a room with the same settings plus clue mode (Typed or Spoken) and optional timers; join by 4-letter code, shared link or QR code. The live lobby shows who's online, the Host and You badges, and host controls (settings, remove a player, start). Rejoining, removal notices, host handover when the host leaves, waiting mid-game, and friendly errors are all covered. Room rules are enforced by server functions (32 new database tests) and checked with a 4-player browser test
 
 - Phase 2, M1: online backend foundation on Supabase. Local stack, tables with row-level security (members read their room; nobody reads game secrets; no direct client writes), Realtime authorization for private `room:` and `player:` channels, anonymous sign-in, and a `game-action` Edge Function that runs the shared game engine. Covered by 24 database security tests (in CI) and end-to-end smoke checks
@@ -18,6 +20,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - Reveal is now a fade: the cover fades as it peels and the word fades up; the card is no longer tilted or scaled
 
 ### Fixed
+- Creating or joining a room failed with "Something went wrong" when the device held a sign-in for a player that no longer exists (for example after the backend was reset); the app now checks the saved sign-in once per launch and starts a fresh one if needed
+- Back did nothing on a screen opened directly from a link or after a refresh; it now goes home
 
 - Simpler scoring: Imposter wins +6 (nobody else scores); Imposter caught, everyone else +2; bonus round, Undercover caught, every Villager +2; Undercover gets away +4. The whole winning side scores, including players voted out earlier
 - The reveal sound played only on every other press: it now waits for the rewind to finish before replaying, and uses a small pool of players so rapid presses overlap

@@ -14,6 +14,18 @@ const MESSAGES: Record<string, string> = {
   invalid_settings: 'Those settings aren’t valid.',
   cannot_kick_self: 'You can’t remove yourself. Leave the room instead.',
   not_signed_in: 'Couldn’t connect. Check your internet and try again.',
+  not_your_turn: 'It’s not your turn yet.',
+  clue_empty: 'Type a clue first.',
+  clue_one_word: 'One word only.',
+  clue_too_long: 'That’s too long for one word.',
+  clue_is_your_word: 'You can’t say your secret word!',
+  cannot_vote_self: 'You can’t vote for yourself.',
+  cannot_suspect_self: 'You can’t mark your own clue.',
+  not_your_guess: 'Only the caught Imposter can guess.',
+  guess_empty: 'Type a guess first.',
+  wrong_phase: 'The game has moved on. Try again.',
+  not_in_game: 'You’re out of this game. Watch the rest!',
+  busy_try_again: 'Lots happening at once. Try again.',
 };
 
 export function friendlyError(error: unknown): string {
