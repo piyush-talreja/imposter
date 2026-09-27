@@ -1,6 +1,6 @@
 # Phase 2: Online private rooms
 
-Status: **M1 done**, M2 next. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
+Status: **M1 and M2 done**, M3 next. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
 
 ## Goal
 
@@ -171,6 +171,12 @@ Each milestone ships as its own PR, and is playable or testable before the next 
 **Tests:** pgTAP for every RPC rule; unit tests for code generation and name rules; a Playwright test with 4 browser contexts: host creates, 3 join by code, presence shows all 4, host kicks one, one leaves, host leaves and hosting passes to the next seat.
 
 **Done when:** 4 phones join one room by code, link or QR and see each other within about a second; host-only actions are enforced by the server; pass-and-play is untouched and all existing tests pass.
+
+**Shipped (M2).** 32 more pgTAP tests (56 in total) cover every room rule; a 4-player browser test (`e2e/rooms.mjs`, 14 checks) covers the flows end to end. Implementation notes:
+
+- Room functions notify the room from SQL with `realtime.send` (`room_updated` on `room:{id}`); phones refetch on each event and after reconnecting. A removed player can't read the room any more, so `kick_player` also sends `kicked` on their private `player:{uid}` channel.
+- "Online" comes from Realtime Presence, keyed by user id. Start needs 3 players online in the app, and the server also checks there are 3 active members.
+- Settings are validated for shape and ranges on the server; role caps depend on the player count and are enforced when the game is dealt (M3).
 
 ### M3: Online game loop (outline)
 

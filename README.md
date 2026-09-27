@@ -103,7 +103,7 @@ Add rows to `src/features/words/words.ts` as `[word, cousin, 'e' | 'm' | 'h']`. 
 - **UX:** Quit asks for confirmation, dealing shows progress dots, and a "Still in" row shows which roles remain (following the Nielsen heuristics: system status, error prevention, recognition over recall, minimalist design).
 - **Fonts:** Big Shoulders Display (condensed poster headlines) and Outfit (body text). Tokens live in `src/theme/tokens.ts`.
 
-## Online backend (Phase 2, in progress)
+## Online rooms (Phase 2, in progress)
 
 Online rooms run on [Supabase](https://supabase.com). Pass-and-play needs none of this. Locally it runs in Docker:
 
@@ -114,6 +114,15 @@ pnpm test:db             # security tests: RLS, private channels, no direct writ
 pnpm functions:serve     # run the game-action Edge Function (keep this running)
 pnpm test:online         # end-to-end checks against the local stack, like a phone
 ```
+
+Rooms and the lobby (M2) are playable in the browser. With `.env` pointing at the local stack:
+
+```bash
+pnpm web                         # or: pnpm export:web && node e2e/serve.mjs dist 8765
+pnpm test:e2e:rooms              # 4 players in 4 browser sessions (needs the build served on :8765)
+```
+
+Home → **Play online** → Host or Join. Share the 4-letter code, the link, or the QR code. Open more browser windows (or private windows) to add players.
 
 Copy `.env.example` to `.env` and fill in the URL and anon key from `pnpm supabase status`.
 

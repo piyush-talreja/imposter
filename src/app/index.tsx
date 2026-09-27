@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Character } from '@/components/Character';
 import { Bob, Body, Button, Label, Pop, Screen } from '@/components/ui';
 import { useGame } from '@/features/game/store';
+import { onlineConfigured } from '@/features/online/client';
 import { useColumnWidth } from '@/lib/fit';
 import { colors, fonts, size, space } from '@/theme/tokens';
 
@@ -39,6 +40,9 @@ export default function Home() {
             variant={resumeTo ? 'outline' : 'pop'}
             onPress={() => router.push('/setup')}
           />
+          {onlineConfigured() ? (
+            <Button label="Play online" variant="outline" onPress={() => router.push('/online')} />
+          ) : null}
           <Button label="How to play" variant="ghost" onPress={() => router.push('/how-to-play')} />
         </>
       }
