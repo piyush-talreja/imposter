@@ -11,6 +11,7 @@ import {
   eliminate,
   isCorrectGuess,
   maxInfiltrators,
+  maxUndercover,
   newGame,
   nextRound,
   pickWeighted,
@@ -58,22 +59,42 @@ const baseGame = (overrides: Partial<Game> = {}): Game => ({
 });
 
 describe('role counts', () => {
+  const manual = (undercover: number, imposter: number) => ({
+    ...DEFAULT_SETTINGS,
+    autoRoles: false,
+    roles: { undercover, imposter },
+  });
+
   it('suggests sensible splits by group size', () => {
-    expect(suggestRoles(3)).toEqual({ undercover: 1, imposter: 0 });
+    expect(suggestRoles(3)).toEqual({ undercover: 0, imposter: 1 });
+    expect(suggestRoles(4)).toEqual({ undercover: 0, imposter: 1 });
     expect(suggestRoles(5)).toEqual({ undercover: 1, imposter: 1 });
     expect(suggestRoles(8)).toEqual({ undercover: 2, imposter: 1 });
   });
 
-  it('keeps villagers in the majority', () => {
-    expect(maxInfiltrators(3)).toBe(1);
-    expect(maxInfiltrators(6)).toBe(2);
-    const manual = { ...DEFAULT_SETTINGS, autoRoles: false, roles: { undercover: 5, imposter: 5 } };
-    expect(effectiveRoles(manual, 6)).toEqual({ undercover: 0, imposter: 2 });
+  it('always has at least one imposter', () => {
+    expect(effectiveRoles(manual(0, 0), 5)).toEqual({ undercover: 0, imposter: 1 });
+    expect(effectiveRoles(manual(2, 0), 6)).toEqual({ undercover: 1, imposter: 1 });
   });
 
-  it('always has at least one infiltrator', () => {
-    const none = { ...DEFAULT_SETTINGS, autoRoles: false, roles: { undercover: 0, imposter: 0 } };
-    expect(effectiveRoles(none, 5)).toEqual({ undercover: 1, imposter: 0 });
+  it('undercover is optional', () => {
+    expect(effectiveRoles(manual(0, 1), 8)).toEqual({ undercover: 0, imposter: 1 });
+  });
+
+  it('3 players: imposter only, no undercover', () => {
+    expect(maxUndercover(3, 1)).toBe(0);
+    expect(effectiveRoles(manual(1, 1), 3)).toEqual({ undercover: 0, imposter: 1 });
+  });
+
+  it('4 players may add one undercover', () => {
+    expect(effectiveRoles(manual(1, 1), 4)).toEqual({ undercover: 1, imposter: 1 });
+    expect(effectiveRoles(manual(3, 1), 4)).toEqual({ undercover: 1, imposter: 1 });
+  });
+
+  it('keeps villagers in the majority from 5 players', () => {
+    expect(maxInfiltrators(5)).toBe(2);
+    expect(maxInfiltrators(6)).toBe(2);
+    expect(effectiveRoles(manual(5, 5), 6)).toEqual({ undercover: 0, imposter: 2 });
   });
 });
 
