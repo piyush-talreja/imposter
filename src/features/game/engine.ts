@@ -37,7 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   categoryIds: [],
   difficulties: ['easy', 'medium'],
   autoRoles: true,
-  roles: { undercover: 1, imposter: 0 },
+  roles: { undercover: 0, imposter: 1 },
   imposterSeesCategory: false,
   imposterNeverFirst: true,
   scoring: true,
@@ -66,25 +66,40 @@ export type Game = {
 export type Card = { kind: 'word'; word: string } | { kind: 'imposter'; category?: string };
 
 /** Infiltrators (undercover + imposter) must be outnumbered by villagers at the start. */
+/** Undercover needs enough villagers to be "close but different" from; below this it's imposter-only. */
+export const MIN_PLAYERS_FOR_UNDERCOVER = 4;
+
+/**
+ * Most infiltrators (undercover + imposter) a group can have. Villagers stay in
+ * the majority, except that 4 players may run 1 imposter + 1 undercover.
+ */
 export function maxInfiltrators(playerCount: number): number {
-  return Math.max(1, Math.floor((playerCount - 1) / 2));
+  if (playerCount <= 4) return Math.max(1, playerCount - 2);
+  return Math.floor((playerCount - 1) / 2);
+}
+
+/** Most undercovers allowed alongside `imposter` imposters (0 below 4 players). */
+export function maxUndercover(playerCount: number, imposter: number): number {
+  if (playerCount < MIN_PLAYERS_FOR_UNDERCOVER) return 0;
+  return Math.max(0, maxInfiltrators(playerCount) - imposter);
 }
 
 export function suggestRoles(playerCount: number): RoleCounts {
-  if (playerCount <= 4) return { undercover: 1, imposter: 0 };
+  if (playerCount <= 4) return { undercover: 0, imposter: 1 };
   if (playerCount <= 6) return { undercover: 1, imposter: 1 };
   if (playerCount <= 9) return { undercover: 2, imposter: 1 };
-  if (playerCount <= 12) return { undercover: 3, imposter: 1 };
+  if (playerCount <= 12) return { undercover: 2, imposter: 2 };
   return { undercover: Math.floor(playerCount / 4), imposter: 2 };
 }
 
-/** Resolve the counts actually used, clamped so the game stays winnable. */
+/**
+ * Resolve the counts actually used: there is always at least one imposter,
+ * undercover is optional, and the game stays winnable.
+ */
 export function effectiveRoles(settings: Settings, playerCount: number): RoleCounts {
   const wanted = settings.autoRoles ? suggestRoles(playerCount) : settings.roles;
-  const max = maxInfiltrators(playerCount);
-  const imposter = Math.max(0, Math.min(wanted.imposter, max));
-  let undercover = Math.max(0, Math.min(wanted.undercover, max - imposter));
-  if (undercover + imposter === 0) undercover = 1;
+  const imposter = Math.max(1, Math.min(wanted.imposter, maxInfiltrators(playerCount)));
+  const undercover = Math.max(0, Math.min(wanted.undercover, maxUndercover(playerCount, imposter)));
   return { undercover, imposter };
 }
 
