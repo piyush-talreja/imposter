@@ -5,11 +5,16 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Card, Label, Pop, Screen } from '@/components/ui';
 import { alive } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { CONFETTI, colors, fonts, onColor, radius, size, space } from '@/theme/tokens';
 
 export default function Clues() {
   const { game, players } = useGame();
   const [turn, setTurn] = useState(0);
+  // Screen + card padding and borders.
+  const nameWidth = useColumnWidth(48 + 48 + 12);
+  useBlockBack();
 
   if (!game) return <Redirect href="/" />;
   const speakers = alive(game);
@@ -54,9 +59,12 @@ export default function Clues() {
             <>
               <Label color={onColor(colorOf(speaker))}>give one word</Label>
               <Text
-                style={[styles.big, { color: onColor(colorOf(speaker)) }]}
+                style={[
+                  styles.big,
+                  { color: onColor(colorOf(speaker)) },
+                  sized(fitFontSize(playerName(players, speaker), size.hero, nameWidth)),
+                ]}
                 numberOfLines={1}
-                adjustsFontSizeToFit
               >
                 {playerName(players, speaker)}
               </Text>
@@ -96,6 +104,8 @@ export default function Clues() {
     </Screen>
   );
 }
+
+const sized = (fontSize: number) => ({ fontSize, lineHeight: Math.round(fontSize * 1.25) });
 
 const styles = StyleSheet.create({
   spotlight: { alignItems: 'center', paddingVertical: space.xl },

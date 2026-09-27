@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Label, NATIVE_DRIVER } from '@/components/ui';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { tap } from '@/lib/haptics';
 import { OUTLINE, colors, fonts, radius, size, space } from '@/theme/tokens';
 
@@ -31,6 +32,12 @@ export function SecretCard({
   const [peel] = useState(() => new Animated.Value(0));
   const [wiggle] = useState(() => new Animated.Value(0));
   const [holding, setHolding] = useState(false);
+  // Screen padding + card borders/shadow + inner padding.
+  const wordWidth = useColumnWidth(48 + 12 + 48);
+  const wordSize = (text: string) => {
+    const fontSize = fitFontSize(text, size.giant - 4, wordWidth, { wrap: true });
+    return { fontSize, lineHeight: Math.round(fontSize * 1.2) };
+  };
 
   // A gentle nudge on the peel corner to invite a press.
   useEffect(() => {
@@ -72,6 +79,7 @@ export function SecretCard({
         onPressOut={release}
         // A very quick tap can end before onPressIn fires; still count it as seen.
         onPress={onSeen}
+        onLongPress={() => {}}
         accessibilityRole="button"
         accessibilityLabel={
           holding ? secretLabel(card) : 'Press and hold to peel back the sticker and see your word'
@@ -83,7 +91,7 @@ export function SecretCard({
           {card.kind === 'word' ? (
             <>
               <Label>your secret word</Label>
-              <Text style={styles.word} numberOfLines={2} adjustsFontSizeToFit>
+              <Text style={[styles.word, wordSize(card.word)]} numberOfLines={3} selectable={false}>
                 {card.word}
               </Text>
               <Text style={styles.note}>Remember it. Don&apos;t say it!</Text>
@@ -91,7 +99,9 @@ export function SecretCard({
           ) : (
             <>
               <Text style={styles.mask}>🎭</Text>
-              <Text style={[styles.word, { color: colors.pink }]}>Imposter!</Text>
+              <Text style={[styles.word, wordSize('Imposter!'), { color: colors.pink }]} selectable={false}>
+                Imposter!
+              </Text>
               {card.category ? (
                 <Text style={styles.note}>
                   Psst, the category is <Text style={styles.noteStrong}>{card.category}</Text>

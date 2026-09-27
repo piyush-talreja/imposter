@@ -5,6 +5,8 @@ import { Body, Button, Card, Confetti, Label, Pop, Screen, Sticker } from '@/com
 import { type Winner } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
 import { categoryName } from '@/features/words/words';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { OUTLINE, ROLE_META, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 const HEADLINE: Record<Winner, { text: string; emoji: string; color: string; line: string }> = {
@@ -23,17 +25,17 @@ const HEADLINE: Record<Winner, { text: string; emoji: string; color: string; lin
   },
 };
 
-/** Shrink long words so they fit the half-width boxes (adjustsFontSizeToFit is native-only). */
-const fit = (word: string) => {
-  const longest = Math.max(...word.split(' ').map((w) => w.length));
-  const fontSize = longest > 9 ? 20 : longest > 7 ? 23 : 28;
-  return { fontSize, lineHeight: fontSize + 8 };
-};
-
 export default function Results() {
   const { game, players, settings, scores, lastPoints, startGame } = useGame();
+  // Two boxes side by side inside a card.
+  const boxWidth = useColumnWidth(48 + 48 + 12 + 8) / 2 - 24;
+  useBlockBack();
   if (!game?.winner) return <Redirect href="/" />;
   const head = HEADLINE[game.winner];
+  const fit = (word: string) => {
+    const fontSize = fitFontSize(word, size.title - 4, boxWidth, { wrap: true });
+    return { fontSize, lineHeight: fontSize + 8 };
+  };
   const ranked = [...players].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0));
 
   return (

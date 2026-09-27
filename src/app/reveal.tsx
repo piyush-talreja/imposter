@@ -5,10 +5,12 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { Body, Button, Card, Confetti, Label, Pop, Screen, Sticker } from '@/components/ui';
 import { isCorrectGuess } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { OUTLINE, ROLE_META, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 export default function Reveal() {
   const { game, players, guess, continueRound } = useGame();
+  useBlockBack();
   const [text, setText] = useState('');
   const [missed, setMissed] = useState(false);
 

@@ -5,6 +5,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Body, Button, Pop, Screen } from '@/components/ui';
 import { alive } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { tap } from '@/lib/haptics';
 import {
   CONFETTI,
@@ -22,6 +24,9 @@ import {
 // One vote-out per round, decided out loud. The phone stays on the table.
 export default function VoteOut() {
   const { game, players, eliminatePlayer } = useGame();
+  useBlockBack();
+  // Two tiles per row: screen padding, gap, shadows, tile padding and borders.
+  const tileText = useColumnWidth(48 + 16 + 10) / 2 - 38;
   const [choice, setChoice] = useState<string | null>(null);
 
   if (!game) return <Redirect href="/" />;
@@ -41,7 +46,8 @@ export default function VoteOut() {
       onBack={() => router.dismissTo('/')}
       footer={
         <Button
-          label={choice ? `Vote out ${playerName(players, choice)}` : 'Tap a player'}
+          label={choice ? 'Vote them out!' : 'Tap a player'}
+          accessibilityHint={choice ? `Votes out ${playerName(players, choice)}` : undefined}
           onPress={confirm}
           disabled={!choice}
         />
@@ -64,22 +70,28 @@ export default function VoteOut() {
                 accessibilityRole="radio"
                 accessibilityLabel={playerName(players, id)}
                 accessibilityState={{ selected }}
-                style={styles.cellInner}
+                style={[styles.cellInner, { transform: [{ rotate: `${((i * 37) % 5) - 2}deg` }] }]}
               >
                 <View style={styles.tileShadow} />
-                <View
-                  style={[
-                    styles.tile,
-                    { backgroundColor: selected ? colors.ink : colors.white },
-                    { transform: [{ rotate: `${((i * 37) % 5) - 2}deg` }] },
-                  ]}
-                >
+                <View style={[styles.tile, { backgroundColor: selected ? colors.ink : colors.white }]}>
                   <View style={[styles.avatar, { backgroundColor: color }]}>
                     <Text style={[styles.initial, { color: onColor(color) }]}>
                       {playerName(players, id).slice(0, 1).toUpperCase()}
                     </Text>
                   </View>
-                  <Text style={[styles.tileName, selected && { color: colors.white }]} numberOfLines={1}>
+                  <Text
+                    style={[
+                      styles.tileName,
+                      {
+                        fontSize: fitFontSize(playerName(players, id), size.body, tileText, {
+                          wrap: true,
+                          min: 12,
+                        }),
+                      },
+                      selected && { color: colors.white },
+                    ]}
+                    numberOfLines={2}
+                  >
                     {playerName(players, id)}
                   </Text>
                   {selected ? <Text style={styles.pointer}>👉 out?</Text> : null}
@@ -127,6 +139,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initial: { fontFamily: fonts.display, fontSize: 34, lineHeight: 42 },
-  tileName: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: size.lead },
+  tileName: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: size.body, textAlign: 'center' },
   pointer: { color: colors.yellow, fontFamily: fonts.bodyBold, fontSize: size.small },
 });

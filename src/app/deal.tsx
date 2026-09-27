@@ -7,6 +7,8 @@ import { cardFor } from '@/features/game/engine';
 import { SecretCard } from '@/features/game/SecretCard';
 import { useGame } from '@/features/game/store';
 import { categoryName } from '@/features/words/words';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { CONFETTI, colors, fonts, onColor, size, space } from '@/theme/tokens';
 
 export default function Deal() {
@@ -14,6 +16,9 @@ export default function Deal() {
   const [index, setIndex] = useState(0);
   const [claimed, setClaimed] = useState(false);
   const [seen, setSeen] = useState(false);
+  // Screen padding + tag padding + borders.
+  const nameWidth = useColumnWidth(48 + 64 + 8);
+  useBlockBack();
 
   if (!game) return <Redirect href="/" />;
   const player = players[index];
@@ -38,7 +43,7 @@ export default function Deal() {
       footer={
         claimed ? (
           <Button
-            label={isLast ? "Everyone's in. Start!" : 'Got it, pass it on'}
+            label={isLast ? "Let's start!" : 'Got it, pass it on'}
             color={colors.blue}
             onPress={next}
             disabled={!seen}
@@ -46,7 +51,8 @@ export default function Deal() {
           />
         ) : (
           <Button
-            label={`I'm ${player.name}!`}
+            label="That's me!"
+            accessibilityHint={`Only ${player.name} should tap this`}
             color={color === colors.yellow ? colors.orange : color}
             onPress={() => setClaimed(true)}
           />
@@ -63,7 +69,14 @@ export default function Deal() {
               { backgroundColor: color, transform: [{ rotate: index % 2 ? '3deg' : '-3deg' }] },
             ]}
           >
-            <Text style={[styles.name, { color: onColor(color) }]} numberOfLines={1} adjustsFontSizeToFit>
+            <Text
+              style={[
+                styles.name,
+                { color: onColor(color) },
+                sized(fitFontSize(player.name, size.giant, nameWidth, { wrap: true })),
+              ]}
+              numberOfLines={2}
+            >
               {player.name}
             </Text>
           </View>
@@ -86,6 +99,8 @@ export default function Deal() {
     </Screen>
   );
 }
+
+const sized = (fontSize: number) => ({ fontSize, lineHeight: Math.round(fontSize * 1.22) });
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.lg },

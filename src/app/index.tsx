@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Body, Button, Card, Pop, Screen, Sticker } from '@/components/ui';
 import { useGame } from '@/features/game/store';
+import { useColumnWidth } from '@/lib/fit';
 import { ROLE_META, colors, fonts, size, space } from '@/theme/tokens';
 
 const TITLE = 'Imposter'.split('');
@@ -19,6 +20,8 @@ const TITLE_COLORS = [
 
 export default function Home() {
   const { game, dealt } = useGame();
+  // 8 wobbly letters must fit across small phones (e.g. 320pt iPhone SE).
+  const letterSize = Math.min(66, Math.floor(useColumnWidth(48) / (TITLE.length * 0.7)));
   const resumeTo: Href | null =
     !game || game.winner ? null : game.pendingGuess ? '/reveal' : dealt ? '/clues' : '/deal';
 
@@ -46,6 +49,7 @@ export default function Home() {
               <Text
                 style={[
                   styles.letter,
+                  { fontSize: letterSize, lineHeight: Math.round(letterSize * 1.27) },
                   {
                     color: TITLE_COLORS[i],
                     transform: [{ rotate: `${i % 2 ? 6 : -6}deg` }, { translateY: i % 2 ? 4 : -2 }],
@@ -114,5 +118,5 @@ const styles = StyleSheet.create({
   roleEmoji: { fontSize: 24 },
   roleName: { fontFamily: fonts.display, fontSize: size.lead + 2, color: colors.ink },
   roleBlurb: { fontSize: size.small + 1, color: colors.inkSoft, lineHeight: 20 },
-  meta: { flexDirection: 'row', justifyContent: 'center', gap: space.md },
+  meta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.md },
 });

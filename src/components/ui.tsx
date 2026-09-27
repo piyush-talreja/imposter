@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -17,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { tap, thud } from '@/lib/haptics';
 import { CONFETTI, OUTLINE, SHADOW, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
@@ -84,7 +86,7 @@ export function Screen({
   return (
     <Table>
       <SafeAreaView style={styles.fill} edges={['top', 'bottom', 'left', 'right']}>
-        <View style={styles.column}>
+        <KeyboardAvoidingView style={styles.column} behavior="padding">
           <View style={styles.header}>
             {back ? (
               <Pressable
@@ -118,7 +120,7 @@ export function Screen({
             <View style={[styles.scroll, styles.fill]}>{body}</View>
           )}
           {footer ? <View style={styles.footer}>{footer}</View> : null}
-        </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Table>
   );
@@ -362,6 +364,9 @@ export function Sticker({
   style?: StyleProp<ViewStyle>;
 }) {
   const [t] = useState(() => new Animated.Value(0));
+  // Sits inside a Card on the screen column: screen + card padding, borders, shadow, own padding.
+  const avail = useColumnWidth(170) - (emoji ? fontSize * 1.2 : 0);
+  const fs = fitFontSize(text, fontSize, avail);
   useEffect(() => {
     const id = setTimeout(thud, delay + 120);
     const anim = Animated.sequence([
@@ -393,15 +398,14 @@ export function Sticker({
         style,
       ]}
     >
-      {emoji ? <Text style={{ fontSize: fontSize * 0.9 }}>{emoji}</Text> : null}
+      {emoji ? <Text style={{ fontSize: fs * 0.9 }}>{emoji}</Text> : null}
       <Text
         style={[
           styles.stickerText,
-          { fontSize, lineHeight: fontSize * 1.25 },
+          { fontSize: fs, lineHeight: fs * 1.25 },
           color === colors.yellow && { color: colors.ink },
         ]}
         numberOfLines={1}
-        adjustsFontSizeToFit
       >
         {text}
       </Text>

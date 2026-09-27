@@ -5,6 +5,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Fixed
+- Role stickers ("Imposter", "Undercover") and long names shrank to an unreadable size on phones. `adjustsFontSizeToFit` collapses text inside containers that size to their content, so text is now sized to the screen width on every platform.
+- First launch with no saved data could hang on the loading spinner, because the app missed the "saved data loaded" signal.
+- The on-screen keyboard covered the name and guess inputs, and the button below them.
+- The Android back button could drop the table out of a game mid-deal.
+- Long-pressing the word card on mobile web opened the browser's context menu.
+- On small phones (iPhone SE), long names overflowed or were cut mid-word, button labels wrapped onto two lines, and the home screen stickers ran off the edge.
+
 ### Changed
 
 - **New rules:** three roles. Villagers get the word, the Undercover gets its cousin without knowing it, and the Imposter gets no word. Play is now round-based elimination instead of a single vote.
