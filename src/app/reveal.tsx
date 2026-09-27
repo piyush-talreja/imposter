@@ -31,18 +31,17 @@ export default function Reveal() {
   const footer = awaitingGuess ? (
     missed ? (
       <>
-        <Button label="Nope, wrong!" color={colors.blue} onPress={() => guess(text)} />
+        <Button label="Nope, wrong!" onPress={() => guess(text)} />
         <Button label="Close enough, count it" variant="ghost" onPress={() => guess(text, true)} />
       </>
     ) : (
       <Button label="Lock in the guess" onPress={check} disabled={!text.trim()} />
     )
   ) : game.winner ? (
-    <Button label="See who won! 🎉" color={colors.mint} onPress={() => router.replace('/results')} />
+    <Button label="See who won! 🎉" onPress={() => router.replace('/results')} />
   ) : (
     <Button
       label={`On to round ${game.round + 1}`}
-      color={colors.blue}
       onPress={() => {
         continueRound();
         router.replace('/clues');
@@ -55,8 +54,8 @@ export default function Reveal() {
       <Pop>
         <Card
           badge={`${name} was…`}
-          badgeColor={colors.white}
-          color={colors.paper}
+          badgeColor={colors.raised}
+          color={colors.surface}
           tilt={-0.8}
           style={styles.reveal}
         >
@@ -96,7 +95,7 @@ export default function Reveal() {
               }}
               onSubmitEditing={check}
               placeholder="Type your guess…"
-              placeholderTextColor={colors.inkSoft}
+              placeholderTextColor={colors.textSoft}
               autoCapitalize="words"
               autoCorrect={false}
               returnKeyType="done"
@@ -112,7 +111,7 @@ export default function Reveal() {
 
       {game.lastGuess ? (
         <Pop>
-          <Card badge="The guess" badgeColor={colors.yellow} tilt={0.6} style={styles.reveal}>
+          <Card badge="The guess" badgeColor={colors.raised} tilt={0.6} style={styles.reveal}>
             <Body style={styles.center}>
               {playerName(players, game.lastGuess.by)} guessed “{game.lastGuess.text.trim()}”
             </Body>
@@ -121,7 +120,7 @@ export default function Reveal() {
               <Sticker
                 text={game.lastGuess.correct ? 'Nailed it!' : 'Nope!'}
                 emoji={game.lastGuess.correct ? '🎯' : '❌'}
-                color={game.lastGuess.correct ? colors.pink : colors.blue}
+                color={game.lastGuess.correct ? colors.pink : colors.cyan}
                 angle={5}
                 delay={100}
                 fontSize={30}
@@ -132,7 +131,7 @@ export default function Reveal() {
       ) : null}
 
       {!awaitingGuess ? (
-        <Label color={colors.inkSoft}>
+        <Label color={colors.textSoft}>
           {game.winner ? 'And that ends the game!' : 'No winner yet. Keep going!'}
         </Label>
       ) : null}
@@ -149,10 +148,10 @@ const styles = StyleSheet.create({
   input: {
     minHeight: TOUCH + 10,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.raised,
     borderWidth: OUTLINE,
-    borderColor: colors.ink,
-    color: colors.ink,
+    borderColor: colors.outline,
+    color: colors.text,
     fontFamily: fonts.bodyBold,
     fontSize: size.lead,
     paddingHorizontal: space.md,

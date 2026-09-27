@@ -1,5 +1,5 @@
-import { BagelFatOne_400Regular } from '@expo-google-fonts/bagel-fat-one';
-import { Fredoka_500Medium, Fredoka_700Bold } from '@expo-google-fonts/fredoka';
+import { Outfit_500Medium, Outfit_700Bold } from '@expo-google-fonts/outfit';
+import { BigShouldersDisplay_900Black } from '@expo-google-fonts/big-shoulders-display';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
@@ -20,12 +20,12 @@ const hasHydrated = () => useGame.persist.hasHydrated();
 const NO_SWIPE = { gestureEnabled: false } as const;
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ BagelFatOne_400Regular, Fredoka_500Medium, Fredoka_700Bold });
+  const [fontsLoaded] = useFonts({ BigShouldersDisplay_900Black, Outfit_500Medium, Outfit_700Bold });
   const hydrated = useSyncExternalStore(subscribeHydration, hasHydrated, hasHydrated);
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       {fontsLoaded && hydrated ? (
         <Stack
           screenOptions={{

@@ -10,11 +10,11 @@ import { useBlockBack } from '@/lib/useBlockBack';
 import { OUTLINE, ROLE_META, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 const HEADLINE: Record<Winner, { text: string; emoji: string; color: string; line: string }> = {
-  villagers: { text: 'Villagers win!', emoji: '🏡', color: colors.mint, line: 'Every faker was found out.' },
+  villagers: { text: 'Villagers win!', emoji: '🏡', color: colors.cyan, line: 'Every faker was found out.' },
   infiltrators: {
     text: 'Fakers win!',
     emoji: '🕶️',
-    color: colors.orange,
+    color: colors.amber,
     line: 'Only one villager was left standing.',
   },
   'imposter-guess': {
@@ -72,15 +72,15 @@ export default function Results() {
       </View>
 
       <Pop delay={600}>
-        <Card badge="The words" badgeColor={colors.yellow} tilt={-0.6}>
+        <Card badge="The words" badgeColor={colors.raised} tilt={-0.6}>
           <View style={styles.words}>
-            <View style={[styles.wordBox, { backgroundColor: colors.mint }]}>
-              <Label color={colors.ink}>🏡 Villagers</Label>
-              <Text style={[styles.word, fit(game.word)]}>{game.word}</Text>
+            <View style={[styles.wordBox, { backgroundColor: colors.cyan }]}>
+              <Label color={colors.outline}>🏡 Villagers</Label>
+              <Text style={[styles.word, fit(game.word), { color: colors.outline }]}>{game.word}</Text>
             </View>
-            <View style={[styles.wordBox, { backgroundColor: colors.orange }]}>
-              <Label color={colors.ink}>🕶️ Undercover</Label>
-              <Text style={[styles.word, fit(game.cousin)]}>{game.cousin}</Text>
+            <View style={[styles.wordBox, { backgroundColor: colors.amber }]}>
+              <Label color={colors.outline}>🕶️ Undercover</Label>
+              <Text style={[styles.word, fit(game.cousin), { color: colors.outline }]}>{game.cousin}</Text>
             </View>
           </View>
           <Body style={styles.meta}>
@@ -131,35 +131,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
     borderWidth: 2.5,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     borderRadius: radius.md,
     padding: space.sm,
   },
   word: {
-    color: colors.ink,
+    color: colors.text,
     fontFamily: fonts.display,
     fontSize: size.title - 4,
     lineHeight: size.title + 6,
     textAlign: 'center',
   },
-  meta: { color: colors.inkSoft, textAlign: 'center', fontSize: size.small + 1 },
+  meta: { color: colors.textSoft, textAlign: 'center', fontSize: size.small + 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: 6 },
-  rank: { width: 26, textAlign: 'center', fontFamily: fonts.display, fontSize: size.lead, color: colors.ink },
+  rank: {
+    width: 26,
+    textAlign: 'center',
+    fontFamily: fonts.display,
+    fontSize: size.lead,
+    color: colors.text,
+  },
   roleDot: {
     width: 34,
     height: 34,
     borderRadius: 17,
     borderWidth: OUTLINE - 1,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowName: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: size.body + 1 },
-  out: { textDecorationLine: 'line-through', color: colors.inkSoft },
-  roleName: { color: colors.inkSoft, fontFamily: fonts.body, fontSize: size.small - 1 },
-  gained: { color: colors.mint, fontFamily: fonts.display, fontSize: size.lead },
+  rowName: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.body + 1 },
+  out: { textDecorationLine: 'line-through', color: colors.textSoft },
+  roleName: { color: colors.textSoft, fontFamily: fonts.body, fontSize: size.small - 1 },
+  gained: { color: colors.pink, fontFamily: fonts.display, fontSize: size.lead },
   total: {
-    color: colors.ink,
+    color: colors.text,
     fontFamily: fonts.display,
     fontSize: size.title - 2,
     minWidth: 36,

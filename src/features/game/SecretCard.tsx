@@ -73,7 +73,7 @@ export function SecretCard({
   };
 
   return (
-    <Card badge={`Only for ${name}`} badgeColor={colors.yellow} tilt={-1} style={{ padding: 0 }}>
+    <Card badge={`Only for ${name}`} badgeColor={colors.pink} tilt={-1} style={{ padding: 0 }}>
       <Pressable
         onPressIn={press}
         onPressOut={release}
@@ -170,12 +170,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: size.giant - 4,
     lineHeight: size.giant + 10,
-    color: colors.ink,
+    color: colors.text,
     textAlign: 'center',
   },
   mask: { fontSize: 44 },
-  note: { color: colors.inkSoft, fontFamily: fonts.body, textAlign: 'center', fontSize: size.body - 1 },
-  noteStrong: { color: colors.ink, fontFamily: fonts.bodyBold },
+  note: { color: colors.textSoft, fontFamily: fonts.body, textAlign: 'center', fontSize: size.body - 1 },
+  noteStrong: { color: colors.text, fontFamily: fonts.bodyBold },
   cover: {
     ...StyleSheet.absoluteFill,
     backgroundColor: colors.pink,
@@ -183,20 +183,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  dot: { position: 'absolute', backgroundColor: colors.yellow, opacity: 0.55 },
+  dot: { position: 'absolute', backgroundColor: colors.outline, opacity: 0.22 },
   coverLabel: {
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.raised,
     borderWidth: OUTLINE,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     borderRadius: radius.lg,
     paddingHorizontal: space.xl,
     paddingVertical: space.md,
     transform: [{ rotate: '-4deg' }],
   },
   coverEmoji: { fontSize: 34 },
-  coverText: { fontFamily: fonts.display, fontSize: size.title, color: colors.ink },
-  coverSub: { fontFamily: fonts.bodyBold, fontSize: size.small, color: colors.inkSoft },
+  coverText: { fontFamily: fonts.display, fontSize: size.title, color: colors.text },
+  coverSub: { fontFamily: fonts.bodyBold, fontSize: size.small, color: colors.textSoft },
   // Curled-up corner hinting that the sticker peels.
   corner: {
     position: 'absolute',
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     bottom: -22,
     width: 56,
     height: 56,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.surface,
     borderWidth: OUTLINE,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
   },
 });

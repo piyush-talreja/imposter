@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Body, Card, Screen } from '@/components/ui';
 import { POINTS } from '@/features/game/engine';
-import { CONFETTI, OUTLINE, ROLE_META, colors, fonts, onColor, size, space } from '@/theme/tokens';
+import { OUTLINE, ROLE_META, colors, fonts, size, space } from '@/theme/tokens';
 
 const STEPS: [string, string][] = [
   [
@@ -18,15 +18,15 @@ const STEPS: [string, string][] = [
 const ROLE_TEXT = {
   villager: 'Most players. You all share the same secret word.',
   undercover:
-    'Gets a word that’s close but different (Pizza → Calzone), and doesn’t know it! Blend in until you figure it out.',
+    'Optional, from 4 players. Gets a word that’s close but different (Pizza → Calzone), and doesn’t know it! Blend in until you figure it out.',
   imposter:
-    'Gets no word, and knows it. Fake it from the clues you hear. If you’re caught, guess the word to steal the win.',
+    'Every game has at least one. Gets no word, and knows it. Fake it from the clues you hear. If you’re caught, guess the word to steal the win.',
 } as const;
 
 export default function HowToPlay() {
   return (
     <Screen kicker="THE RULES" title="How to play">
-      <Card badge="The roles" badgeColor={colors.yellow} tilt={-0.5}>
+      <Card badge="The roles" badgeColor={colors.raised} tilt={-0.5}>
         {(['villager', 'undercover', 'imposter'] as const).map((r) => (
           <View key={r} style={styles.role}>
             <View style={[styles.roleIcon, { backgroundColor: ROLE_META[r].color }]}>
@@ -40,11 +40,11 @@ export default function HowToPlay() {
         ))}
       </Card>
 
-      <Card badge="Each round" badgeColor={colors.mint} tilt={0.4}>
+      <Card badge="Each round" badgeColor={colors.raised} tilt={0.4}>
         {STEPS.map(([title, text], i) => (
           <View key={title} style={styles.step}>
-            <View style={[styles.num, { backgroundColor: CONFETTI[i] }]}>
-              <Text style={[styles.numText, { color: onColor(CONFETTI[i]) }]}>{i + 1}</Text>
+            <View style={[styles.num, { backgroundColor: colors.pink }]}>
+              <Text style={[styles.numText, { color: colors.white }]}>{i + 1}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.stepTitle}>{title}</Text>
@@ -82,23 +82,23 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23,
     borderWidth: OUTLINE - 0.5,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roleName: { fontFamily: fonts.display, fontSize: size.lead + 2, color: colors.ink },
-  muted: { color: colors.inkSoft, fontSize: size.small + 1, lineHeight: 21 },
+  roleName: { fontFamily: fonts.display, fontSize: size.lead + 2, color: colors.text },
+  muted: { color: colors.textSoft, fontSize: size.small + 1, lineHeight: 21 },
   step: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   num: {
     width: 36,
     height: 36,
     borderRadius: 18,
     borderWidth: OUTLINE - 0.5,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   numText: { fontFamily: fonts.display, fontSize: size.lead, lineHeight: 26 },
-  stepTitle: { fontFamily: fonts.bodyBold, fontSize: size.body + 1, color: colors.ink },
+  stepTitle: { fontFamily: fonts.bodyBold, fontSize: size.body + 1, color: colors.text },
   strong: { fontFamily: fonts.bodyBold },
 });

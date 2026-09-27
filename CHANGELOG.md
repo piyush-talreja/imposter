@@ -5,7 +5,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Changed
+
+- Every game has at least one Imposter. Undercover is optional, available from 4 players; 3-player games are 2 Villagers and 1 Imposter.
+
 ### Fixed
+
 - Role stickers ("Imposter", "Undercover") and long names shrank to an unreadable size on phones. `adjustsFontSizeToFit` collapses text inside containers that size to their content, so text is now sized to the screen width on every platform.
 - First launch with no saved data could hang on the loading spinner, because the app missed the "saved data loaded" signal.
 - The on-screen keyboard covered the name and guess inputs, and the button below them.
@@ -19,7 +24,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - The group eliminates one player per round on a single screen, so nobody passes the phone to vote.
 - An eliminated Imposter gets a typed last guess. A correct answer wins; the table can accept a near miss.
 - Win conditions: Villagers win when all infiltrators are out; Undercover and Imposter win when one Villager is left.
-- Complete visual redesign, "Sticker Party": a bright, colorful sticker look with bouncy animations, confetti bursts and a role emoji for each role. Crime wording ("suspects", "case", "accuse") is replaced with party language ("players", "Clue time", "Vote out").
+- Complete visual redesign, "After Dark": a moody night palette with only three accents, each tied to a role (pink Imposter and main actions, cyan Villager, amber Undercover), plus chunky stickers, bouncy reveals and confetti. Party wording ("players", "Clue time", "Vote out") replaces the crime wording.
 - Web build is now a single-page app (fixes a hydration warning).
 
 ### Added

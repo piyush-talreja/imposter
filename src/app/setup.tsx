@@ -3,21 +3,17 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Body, Button, Card, Chip, Label, Screen, Stepper, ToggleRow } from '@/components/ui';
-import { MIN_PLAYERS, effectiveRoles, maxInfiltrators, wordPool } from '@/features/game/engine';
+import {
+  MIN_PLAYERS,
+  MIN_PLAYERS_FOR_UNDERCOVER,
+  effectiveRoles,
+  maxInfiltrators,
+  maxUndercover,
+  wordPool,
+} from '@/features/game/engine';
 import { useGame } from '@/features/game/store';
 import { CATEGORIES, WORDS, type Difficulty } from '@/features/words/words';
-import {
-  CONFETTI,
-  OUTLINE,
-  ROLE_META,
-  TOUCH,
-  colors,
-  fonts,
-  onColor,
-  radius,
-  size,
-  space,
-} from '@/theme/tokens';
+import { OUTLINE, ROLE_META, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 const DIFFICULTIES: { id: Difficulty; label: string }[] = [
   { id: 'easy', label: 'Easy' },
@@ -41,7 +37,8 @@ export default function Setup() {
 
   const n = players.length;
   const roles = effectiveRoles(settings, Math.max(n, MIN_PLAYERS));
-  const maxInf = maxInfiltrators(Math.max(n, MIN_PLAYERS));
+  const count = Math.max(n, MIN_PLAYERS);
+  const maxInf = maxInfiltrators(count);
   const villagers = Math.max(n - roles.undercover - roles.imposter, 0);
   const setRoles = (patch: Partial<typeof roles>) =>
     updateSettings({ autoRoles: false, roles: { ...roles, ...patch } });
@@ -83,14 +80,12 @@ export default function Setup() {
               style={[
                 styles.player,
                 {
-                  backgroundColor: CONFETTI[i % CONFETTI.length],
+                  backgroundColor: colors.raised,
                   transform: [{ rotate: `${i % 2 ? 2 : -2}deg` }],
                 },
               ]}
             >
-              <Text style={[styles.playerName, { color: onColor(CONFETTI[i % CONFETTI.length]) }]}>
-                {p.name}
-              </Text>
+              <Text style={[styles.playerName, { color: colors.text }]}>{p.name}</Text>
               <Pressable
                 onPress={() => removePlayer(p.id)}
                 hitSlop={10}
@@ -109,7 +104,7 @@ export default function Setup() {
             onChangeText={setName}
             onSubmitEditing={submitName}
             placeholder="Add a name"
-            placeholderTextColor={colors.inkSoft}
+            placeholderTextColor={colors.textSoft}
             returnKeyType="done"
             submitBehavior="submit"
             maxLength={16}
@@ -119,7 +114,6 @@ export default function Setup() {
           />
           <Button
             label="Add"
-            color={colors.blue}
             onPress={submitName}
             disabled={!name.trim() || duplicate}
             style={styles.addButton}
@@ -128,7 +122,7 @@ export default function Setup() {
         {duplicate && name.trim() ? <Text style={styles.problem}>That name is taken</Text> : null}
       </Card>
 
-      <Card badge="Roles" badgeColor={colors.yellow} tilt={0.5}>
+      <Card badge="Roles" badgeColor={colors.raised} tilt={0.5}>
         <View style={styles.split}>
           {(['villager', 'undercover', 'imposter'] as const).map((r) => (
             <View key={r} style={[styles.splitItem, { backgroundColor: ROLE_META[r].color }]}>
@@ -139,34 +133,39 @@ export default function Setup() {
           ))}
         </View>
         <Stepper
-          label="🕶️ Undercover"
-          hint="Gets a similar word and doesn't know it"
-          color={colors.orange}
-          value={roles.undercover}
-          min={roles.imposter === 0 ? 1 : 0}
-          max={maxInf - roles.imposter}
-          onChange={(v) => setRoles({ undercover: v })}
-        />
-        <Stepper
           label="🎭 Imposter"
-          hint="Gets no word, and knows it"
+          hint="No word, and knows it. Always at least one"
           color={colors.pink}
           value={roles.imposter}
-          min={roles.undercover === 0 ? 1 : 0}
-          max={maxInf - roles.undercover}
-          onChange={(v) => setRoles({ imposter: v })}
+          min={1}
+          max={maxInf}
+          onChange={(v) =>
+            setRoles({ imposter: v, undercover: Math.min(roles.undercover, maxUndercover(count, v)) })
+          }
+        />
+        <Stepper
+          label="🕶️ Undercover"
+          hint={
+            count < MIN_PLAYERS_FOR_UNDERCOVER
+              ? `Optional · unlocks at ${MIN_PLAYERS_FOR_UNDERCOVER} players`
+              : "Optional · a similar word, and doesn't know it"
+          }
+          color={colors.amber}
+          value={roles.undercover}
+          min={0}
+          max={maxUndercover(count, roles.imposter)}
+          onChange={(v) => setRoles({ undercover: v })}
         />
         <View style={styles.chips}>
           <Chip
             label={settings.autoRoles ? '✓ Best mix for your group' : 'Use the best mix'}
             selected={settings.autoRoles}
-            color={colors.mint}
             onPress={() => updateSettings({ autoRoles: true })}
           />
         </View>
       </Card>
 
-      <Card badge="Topics" badgeColor={colors.mint} tilt={-0.4}>
+      <Card badge="Topics" badgeColor={colors.raised} tilt={-0.4}>
         <View style={styles.chips}>
           <Chip
             label="🎲 All"
@@ -177,11 +176,7 @@ export default function Setup() {
             <Chip
               key={c.id}
               label={`${c.emoji} ${c.name}`}
-              color={
-                CONFETTI[i % CONFETTI.length] === colors.yellow
-                  ? colors.orange
-                  : CONFETTI[i % CONFETTI.length]
-              }
+              color={colors.pink}
               selected={settings.categoryIds.includes(c.id)}
               onPress={() => updateSettings({ categoryIds: toggle(settings.categoryIds, c.id) })}
             />
@@ -193,21 +188,20 @@ export default function Setup() {
             <Chip
               key={d.id}
               label={d.label}
-              color={colors.purple}
+              color={colors.pink}
               selected={settings.difficulties.includes(d.id)}
               onPress={() => updateSettings({ difficulties: toggle(settings.difficulties, d.id) })}
             />
           ))}
           <Chip
             label="🧒 Kids"
-            color={colors.mint}
             selected={settings.difficulties.length === 1 && settings.difficulties[0] === 'easy'}
             onPress={() => updateSettings({ difficulties: ['easy'] })}
           />
         </View>
       </Card>
 
-      <Card badge="House rules" badgeColor={colors.blue} tilt={0.4}>
+      <Card badge="House rules" badgeColor={colors.raised} tilt={0.4}>
         <ToggleRow
           label="Imposter sees the topic"
           hint="A little help for the one with no word"
@@ -232,31 +226,31 @@ export default function Setup() {
 }
 
 const styles = StyleSheet.create({
-  hint: { color: colors.inkSoft, fontSize: size.small + 1, lineHeight: 20 },
+  hint: { color: colors.textSoft, fontSize: size.small + 1, lineHeight: 20 },
   problem: { color: colors.pink, fontFamily: fonts.bodyBold, fontSize: size.small + 1, textAlign: 'center' },
   players: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   player: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2.5,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     borderRadius: radius.pill,
     paddingLeft: space.md,
     minHeight: 42,
   },
   playerName: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: size.body },
   remove: { width: 38, height: 40, alignItems: 'center', justifyContent: 'center' },
-  removeText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 22, lineHeight: 24 },
+  removeText: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: 22, lineHeight: 24 },
   addRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   input: {
     flex: 1,
     minWidth: 0, // web TextInput has an intrinsic width that otherwise pushes Add out
     minHeight: TOUCH + 10,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.raised,
     borderWidth: OUTLINE,
-    borderColor: colors.ink,
-    color: colors.ink,
+    borderColor: colors.outline,
+    color: colors.text,
     fontFamily: fonts.bodyBold,
     fontSize: size.body + 1,
     paddingHorizontal: space.md,
@@ -267,7 +261,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     borderWidth: 2.5,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     borderRadius: radius.md,
     paddingVertical: space.sm,
   },
@@ -276,8 +270,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: size.title + 2,
     lineHeight: size.title + 10,
-    color: colors.ink,
+    color: colors.text,
   },
-  splitLabel: { fontFamily: fonts.bodyBold, fontSize: size.small - 1, color: colors.ink },
+  splitLabel: { fontFamily: fonts.bodyBold, fontSize: size.small - 1, color: colors.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });

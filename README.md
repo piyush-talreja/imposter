@@ -47,14 +47,14 @@ There are three roles, and nobody knows who is who:
 
 ### Options
 
-| Option                    | What it does                                                                                                                                |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Roles                     | A suggested split for the group size, or set the Undercover and Imposter counts yourself. Villagers always start in the majority            |
-| Case files                | 12 categories, or All                                                                                                                       |
-| Difficulty / Kids         | Easy, medium, hard. Kids uses easy words only                                                                                               |
-| Imposter sees category    | Gives the player with no word something to go on                                                                                            |
-| Imposter never goes first | The first clue always comes from someone who has a word                                                                                     |
-| Keep score                | Everyone on the winning side scores: Villager 2, Undercover 5, Imposter 6. A lone Imposter win (a correct guess) scores 6 for that Imposter |
+| Option                    | What it does                                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Roles                     | Always at least **1 Imposter**. **Undercover is optional**, available from 4 players. Use the suggested split for your group size, or set the counts yourself |
+| Case files                | 12 categories, or All                                                                                                                                         |
+| Difficulty / Kids         | Easy, medium, hard. Kids uses easy words only                                                                                                                 |
+| Imposter sees category    | Gives the player with no word something to go on                                                                                                              |
+| Imposter never goes first | The first clue always comes from someone who has a word                                                                                                       |
+| Keep score                | Everyone on the winning side scores: Villager 2, Undercover 5, Imposter 6. A lone Imposter win (a correct guess) scores 6 for that Imposter                   |
 
 ## Scripts
 
@@ -76,7 +76,7 @@ src/features/game/    engine.ts (pure rules, roles, win conditions, scoring; ful
                       store.ts (Zustand, persisted), SecretCard.tsx (hold-to-peel)
 src/features/words/   word list (each word has a "close cousin"), quality tests
 src/components/ui.tsx design system: Table, Card, Sticker, Confetti, Button, Chip, Stepper, ToggleRow, Pop
-src/theme/tokens.ts   "Sticker Party" palette, fonts, role colors and emoji
+src/theme/tokens.ts   "After Dark" palette: three role accents, fonts, role emoji
 docs/decisions/       architecture decision records
 ```
 
@@ -88,7 +88,15 @@ Add rows to `src/features/words/words.ts` as `[word, cousin, 'e' | 'm' | 'h']`. 
 
 ### Design
 
-The theme is "Sticker Party": die-cut stickers with thick ink outlines and hard drop shadows on a cream table covered in confetti. The fonts are Bagel Fat One (chunky display) and Fredoka (rounded body text), loaded through `@expo-google-fonts`. Each role has its own color and emoji (🏡 mint Villager, 🕶️ orange Undercover, 🎭 pink Imposter), and role reveals slap a sticker down with a confetti burst. Colors live in `src/theme/tokens.ts`.
+The theme is "After Dark": a dim party room in deep violet with two soft spotlights, and chunky stickers with black outlines and hard shadows. Color is used sparingly and always means something:
+
+| Color    | Means                                         |
+| -------- | --------------------------------------------- |
+| Hot pink | Imposter, and the main action on every screen |
+| Cyan     | Villager                                      |
+| Amber    | Undercover                                    |
+
+Everything else is neutral, and players are never color-coded, so a color can't hint at anyone's role. The title shows one letter in pink: the odd one out. The fonts are Big Shoulders Display (condensed poster headlines) and Outfit (body text). Tokens live in `src/theme/tokens.ts`.
 
 ## Configuration
 

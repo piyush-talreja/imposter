@@ -6,22 +6,14 @@ import { useGame } from '@/features/game/store';
 import { useColumnWidth } from '@/lib/fit';
 import { ROLE_META, colors, fonts, size, space } from '@/theme/tokens';
 
-const TITLE = 'Imposter'.split('');
-const TITLE_COLORS = [
-  colors.pink,
-  colors.orange,
-  colors.yellow,
-  colors.mint,
-  colors.blue,
-  colors.purple,
-  colors.pink,
-  colors.orange,
-];
+const TITLE = 'IMPOSTER'.split('');
+// Every letter blends in except one: the odd one out.
+const TITLE_COLORS = TITLE.map((_, i) => (i === 3 ? colors.pink : colors.text));
 
 export default function Home() {
   const { game, dealt } = useGame();
   // 8 wobbly letters must fit across small phones (e.g. 320pt iPhone SE).
-  const letterSize = Math.min(66, Math.floor(useColumnWidth(48) / (TITLE.length * 0.7)));
+  const letterSize = Math.min(96, Math.floor(useColumnWidth(48) / (TITLE.length * 0.62)));
   const resumeTo: Href | null =
     !game || game.winner ? null : game.pendingGuess ? '/reveal' : dealt ? '/clues' : '/deal';
 
@@ -30,9 +22,7 @@ export default function Home() {
       onBack={null}
       footer={
         <>
-          {resumeTo ? (
-            <Button label="Keep playing" color={colors.mint} onPress={() => router.push(resumeTo)} />
-          ) : null}
+          {resumeTo ? <Button label="Keep playing" onPress={() => router.push(resumeTo)} /> : null}
           <Button
             label={resumeTo ? 'New game' : "Let's play!"}
             variant={resumeTo ? 'outline' : 'pop'}
@@ -70,7 +60,7 @@ export default function Home() {
       </View>
 
       <Pop delay={700}>
-        <Card badge="Who's who" badgeColor={colors.mint} tilt={-1.2}>
+        <Card badge="Who's who" badgeColor={colors.pink} tilt={-1.2}>
           {(['villager', 'undercover', 'imposter'] as const).map((role) => (
             <View key={role} style={styles.role}>
               <View style={[styles.roleIcon, { backgroundColor: ROLE_META[role].color }]}>
@@ -86,8 +76,8 @@ export default function Home() {
       </Pop>
 
       <View style={styles.meta}>
-        <Sticker text="3–20 players" color={colors.yellow} angle={-5} delay={1000} fontSize={18} />
-        <Sticker text="1 phone" color={colors.blue} angle={4} delay={1150} fontSize={18} />
+        <Sticker text="3–20 players" color={colors.raised} angle={-5} delay={1000} fontSize={18} />
+        <Sticker text="1 phone" color={colors.raised} angle={4} delay={1150} fontSize={18} />
       </View>
     </Screen>
   );
@@ -100,23 +90,23 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: 66,
     lineHeight: 84,
-    textShadowColor: colors.ink,
+    textShadowColor: colors.outline,
     textShadowOffset: { width: 3, height: 4 },
     textShadowRadius: 0,
   },
-  tagline: { textAlign: 'center', maxWidth: 360, color: colors.inkSoft },
+  tagline: { textAlign: 'center', maxWidth: 360, color: colors.textSoft },
   role: { flexDirection: 'row', gap: space.md, alignItems: 'center' },
   roleIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
     borderWidth: 2.5,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   roleEmoji: { fontSize: 24 },
-  roleName: { fontFamily: fonts.display, fontSize: size.lead + 2, color: colors.ink },
-  roleBlurb: { fontSize: size.small + 1, color: colors.inkSoft, lineHeight: 20 },
+  roleName: { fontFamily: fonts.display, fontSize: size.lead + 2, color: colors.text },
+  roleBlurb: { fontSize: size.small + 1, color: colors.textSoft, lineHeight: 20 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.md },
 });

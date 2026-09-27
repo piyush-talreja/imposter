@@ -9,7 +9,7 @@ import { useGame } from '@/features/game/store';
 import { categoryName } from '@/features/words/words';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { useBlockBack } from '@/lib/useBlockBack';
-import { CONFETTI, colors, fonts, onColor, size, space } from '@/theme/tokens';
+import { colors, fonts, onColor, size, space } from '@/theme/tokens';
 
 export default function Deal() {
   const { game, players, settings, markDealt } = useGame();
@@ -23,7 +23,7 @@ export default function Deal() {
   if (!game) return <Redirect href="/" />;
   const player = players[index];
   const isLast = index === players.length - 1;
-  const color = CONFETTI[index % CONFETTI.length];
+  const color = colors.pink;
 
   const next = () => {
     setClaimed(false);
@@ -44,7 +44,6 @@ export default function Deal() {
         claimed ? (
           <Button
             label={isLast ? "Let's start!" : 'Got it, pass it on'}
-            color={colors.blue}
             onPress={next}
             disabled={!seen}
             accessibilityHint={seen ? undefined : 'Hold the card to see your word first'}
@@ -53,7 +52,6 @@ export default function Deal() {
           <Button
             label="That's me!"
             accessibilityHint={`Only ${player.name} should tap this`}
-            color={color === colors.yellow ? colors.orange : color}
             onPress={() => setClaimed(true)}
           />
         )
@@ -105,15 +103,15 @@ const sized = (fontSize: number) => ({ fontSize, lineHeight: Math.round(fontSize
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.lg },
   emoji: { fontSize: 56 },
-  muted: { color: colors.inkSoft, textAlign: 'center' },
+  muted: { color: colors.textSoft, textAlign: 'center' },
   nameTag: {
     maxWidth: '100%',
     borderWidth: 4,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     borderRadius: 32,
     paddingHorizontal: space.xl,
     paddingVertical: space.sm,
-    shadowColor: colors.ink,
+    shadowColor: colors.outline,
     shadowOpacity: 1,
     shadowRadius: 0,
     shadowOffset: { width: 6, height: 6 },

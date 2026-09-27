@@ -20,40 +20,56 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { tap, thud } from '@/lib/haptics';
-import { CONFETTI, OUTLINE, SHADOW, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
+import { ACCENTS, OUTLINE, SHADOW, TOUCH, colors, fonts, onColor, radius, size, space } from '@/theme/tokens';
 
 export const NATIVE_DRIVER = Platform.OS !== 'web';
 
-// Deterministic "random" scatter so the background is stable between renders.
-const SHAPES = Array.from({ length: 14 }, (_, i) => ({
-  x: (i * 73) % 100,
-  y: (i * 41 + 7) % 100,
-  s: 10 + ((i * 29) % 26),
-  kind: i % 3, // 0 dot, 1 square, 2 pill
-  rot: (i * 47) % 90,
-  color: CONFETTI[i % CONFETTI.length],
+// A few faint sparkles in the role accents, placed deterministically.
+const SPARKLES = Array.from({ length: 9 }, (_, i) => ({
+  x: (i * 71 + 13) % 100,
+  y: (i * 43 + 9) % 100,
+  s: 4 + ((i * 5) % 5),
+  color: ACCENTS[i % ACCENTS.length],
 }));
 
-/** Cream table scattered with soft confetti shapes. */
+/** A dim room: deep violet with two soft coloured spotlights and faint sparkles. */
 export function Table({ children }: { children: ReactNode }) {
   const { width, height } = useWindowDimensions();
+  const glow = Math.max(width, height) * 0.9;
   return (
     <View style={styles.fill}>
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} />
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {SHAPES.map((p, i) => (
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
+        <View
+          style={[
+            styles.glow,
+            { width: glow, height: glow, left: -glow * 0.55, top: -glow * 0.6, backgroundColor: colors.pink },
+          ]}
+        />
+        <View
+          style={[
+            styles.glow,
+            {
+              width: glow,
+              height: glow,
+              right: -glow * 0.6,
+              bottom: -glow * 0.65,
+              backgroundColor: colors.cyan,
+            },
+          ]}
+        />
+        {SPARKLES.map((p, i) => (
           <View
             key={i}
             style={{
               position: 'absolute',
               left: (p.x / 100) * width,
               top: (p.y / 100) * height,
-              width: p.kind === 2 ? p.s * 2.2 : p.s,
+              width: p.s,
               height: p.s,
-              borderRadius: p.kind === 1 ? 3 : p.s,
+              borderRadius: p.s,
               backgroundColor: p.color,
-              opacity: 0.22,
-              transform: [{ rotate: `${p.rot}deg` }],
+              opacity: 0.35,
             }}
           />
         ))}
@@ -126,11 +142,13 @@ export function Screen({
   );
 }
 
+const isAccent = (c: string) => (ACCENTS as readonly string[]).includes(c);
+
 /** A die-cut sticker panel: thick outline, hard shadow, optional label badge. */
 export function Card({
   badge,
-  color = colors.paper,
-  badgeColor = colors.yellow,
+  color = colors.surface,
+  badgeColor = colors.raised,
   tilt = 0,
   children,
   style,
@@ -150,7 +168,11 @@ export function Card({
       </View>
       {badge ? (
         <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-          <Text style={styles.badgeText}>{badge}</Text>
+          <Text
+            style={[styles.badgeText, { color: isAccent(badgeColor) ? onColor(badgeColor) : colors.text }]}
+          >
+            {badge}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -193,7 +215,6 @@ export function Button({
       </Pressable>
     );
   }
-  const lightFill = variant === 'outline' || color === colors.yellow;
   return (
     <Pressable
       onPress={press}
@@ -210,12 +231,14 @@ export function Button({
           <View
             style={[
               styles.button,
-              { backgroundColor: variant === 'pop' ? color : colors.white },
+              { backgroundColor: variant === 'pop' ? color : colors.raised },
               // Pressing pushes the sticker down onto its shadow.
               pressed && { transform: [{ translateX: SHADOW - 1 }, { translateY: SHADOW - 1 }] },
             ]}
           >
-            <Text style={[styles.buttonText, !lightFill && { color: colors.white }]}>{label}</Text>
+            <Text style={[styles.buttonText, { color: variant === 'pop' ? onColor(color) : colors.text }]}>
+              {label}
+            </Text>
           </View>
         </>
       )}
@@ -227,7 +250,7 @@ export function Chip({
   label,
   selected,
   onPress,
-  color = colors.blue,
+  color = colors.pink,
 }: {
   label: string;
   selected: boolean;
@@ -245,7 +268,7 @@ export function Chip({
       accessibilityState={{ checked: selected }}
       style={[styles.chip, selected && { backgroundColor: color, transform: [{ rotate: '-2deg' }] }]}
     >
-      <Text style={[styles.chipText, selected && { color: colors.white }]}>{label}</Text>
+      <Text style={[styles.chipText, selected && { color: onColor(color) }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -256,7 +279,7 @@ export function Stepper({
   value,
   min,
   max,
-  color = colors.ink,
+  color = colors.pink,
   onChange,
 }: {
   label: string;
@@ -280,9 +303,9 @@ export function Stepper({
       disabled={off}
       accessibilityRole="button"
       accessibilityLabel={`${d < 0 ? 'Fewer' : 'More'} ${label}`}
-      style={[styles.stepButton, { backgroundColor: off ? colors.white : color }, off && { opacity: 0.35 }]}
+      style={[styles.stepButton, { backgroundColor: off ? colors.raised : color }, off && { opacity: 0.35 }]}
     >
-      <Text style={[styles.stepGlyph, !off && { color: colors.white }]}>{glyph}</Text>
+      <Text style={[styles.stepGlyph, !off && { color: onColor(color) }]}>{glyph}</Text>
     </Pressable>
   );
   return (
@@ -326,7 +349,7 @@ export function ToggleRow({
           onChange(v);
         }}
         accessibilityLabel={label}
-        trackColor={{ true: colors.mint, false: '#E4D9C4' }}
+        trackColor={{ true: colors.pink, false: colors.raised }}
         thumbColor={colors.white}
         {...(Platform.OS === 'web' ? { activeThumbColor: colors.white } : {})}
       />
@@ -334,7 +357,7 @@ export function ToggleRow({
   );
 }
 
-export function Label({ children, color = colors.inkSoft }: { children: ReactNode; color?: string }) {
+export function Label({ children, color = colors.textSoft }: { children: ReactNode; color?: string }) {
   return <Text style={[styles.label, { color }]}>{children}</Text>;
 }
 
@@ -366,7 +389,7 @@ export function Sticker({
   const [t] = useState(() => new Animated.Value(0));
   // Sits inside a Card on the screen column: screen + card padding, borders, shadow, own padding.
   const avail = useColumnWidth(170) - (emoji ? fontSize * 1.2 : 0);
-  const fs = fitFontSize(text, fontSize, avail);
+  const fs = fitFontSize(text, fontSize, avail, { letterSpacing: 1 });
   useEffect(() => {
     const id = setTimeout(thud, delay + 120);
     const anim = Animated.sequence([
@@ -400,11 +423,7 @@ export function Sticker({
     >
       {emoji ? <Text style={{ fontSize: fs * 0.9 }}>{emoji}</Text> : null}
       <Text
-        style={[
-          styles.stickerText,
-          { fontSize: fs, lineHeight: fs * 1.25 },
-          color === colors.yellow && { color: colors.ink },
-        ]}
+        style={[styles.stickerText, { fontSize: fs, lineHeight: fs * 1.25 }, { color: onColor(color) }]}
         numberOfLines={1}
       >
         {text}
@@ -445,7 +464,7 @@ export function Confetti({ delay = 250, count = 22 }: { delay?: number; count?: 
               width: i % 2 ? 10 : 14,
               height: i % 2 ? 10 : 6,
               borderRadius: i % 3 === 0 ? 5 : 2,
-              backgroundColor: CONFETTI[i % CONFETTI.length],
+              backgroundColor: ACCENTS[i % ACCENTS.length],
               opacity: t.interpolate({ inputRange: [0, 0.1, 0.8, 1], outputRange: [0, 1, 1, 0] }),
               transform: [
                 {
@@ -516,23 +535,23 @@ const styles = StyleSheet.create({
   column: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center' },
   header: { paddingHorizontal: space.lg, paddingTop: space.xs, gap: space.xs },
   back: { minHeight: TOUCH - 8, justifyContent: 'center', alignSelf: 'flex-start' },
-  backText: { color: colors.inkSoft, fontFamily: fonts.bodyBold, fontSize: size.body },
+  backText: { color: colors.textSoft, fontFamily: fonts.bodyBold, fontSize: size.body },
   kicker: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.ink,
+    backgroundColor: colors.outline,
     borderRadius: radius.pill,
     paddingHorizontal: space.md,
     paddingVertical: 4,
     transform: [{ rotate: '-2deg' }],
   },
   kickerText: {
-    color: colors.yellow,
+    color: colors.pink,
     fontFamily: fonts.bodyBold,
     fontSize: size.small - 1,
     letterSpacing: 1,
   },
   title: {
-    color: colors.ink,
+    color: colors.text,
     fontFamily: fonts.display,
     fontSize: size.title + 4,
     lineHeight: size.title + 14,
@@ -548,13 +567,13 @@ const styles = StyleSheet.create({
     left: SHADOW,
     right: -SHADOW,
     bottom: -SHADOW,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.outline,
     borderRadius: radius.lg,
   },
   card: {
     borderRadius: radius.lg,
     borderWidth: OUTLINE,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     padding: space.lg,
     gap: space.md,
     overflow: 'hidden',
@@ -564,13 +583,13 @@ const styles = StyleSheet.create({
     top: 0,
     left: space.lg,
     borderWidth: OUTLINE,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     borderRadius: radius.pill,
     paddingHorizontal: space.md,
     paddingVertical: 3,
     transform: [{ rotate: '-3deg' }],
   },
-  badgeText: { fontFamily: fonts.bodyBold, fontSize: size.small, color: colors.ink },
+  badgeText: { fontFamily: fonts.bodyBold, fontSize: size.small, color: colors.text },
 
   buttonWrap: { marginRight: SHADOW, marginBottom: SHADOW },
   buttonShadow: {
@@ -579,22 +598,22 @@ const styles = StyleSheet.create({
     left: SHADOW,
     right: -SHADOW,
     bottom: -SHADOW,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.outline,
     borderRadius: radius.md,
   },
   button: {
     minHeight: TOUCH + 10,
     borderRadius: radius.md,
     borderWidth: OUTLINE,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.lg,
   },
-  buttonText: { color: colors.ink, fontFamily: fonts.display, fontSize: size.lead + 2, textAlign: 'center' },
+  buttonText: { color: colors.text, fontFamily: fonts.display, fontSize: size.lead + 2, textAlign: 'center' },
   ghost: { minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },
   ghostText: {
-    color: colors.inkSoft,
+    color: colors.textSoft,
     fontFamily: fonts.bodyBold,
     fontSize: size.body,
     textDecorationLine: 'underline',
@@ -605,28 +624,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     borderRadius: radius.pill,
     borderWidth: 2.5,
-    borderColor: colors.ink,
-    backgroundColor: colors.white,
+    borderColor: colors.outline,
+    backgroundColor: colors.raised,
     justifyContent: 'center',
   },
-  chipText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: size.small + 1 },
+  chipText: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.small + 1 },
 
   row: { flexDirection: 'row', alignItems: 'center', minHeight: TOUCH, gap: space.sm },
-  rowLabel: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: size.body + 1 },
-  hint: { color: colors.inkSoft, fontFamily: fonts.body, fontSize: size.small - 1, marginTop: 1 },
+  rowLabel: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.body + 1 },
+  hint: { color: colors.textSoft, fontFamily: fonts.body, fontSize: size.small - 1, marginTop: 1 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   stepButton: {
     width: TOUCH - 4,
     height: TOUCH - 4,
     borderRadius: (TOUCH - 4) / 2,
     borderWidth: 2.5,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepGlyph: { color: colors.ink, fontFamily: fonts.display, fontSize: 24, lineHeight: 28 },
+  stepGlyph: { color: colors.text, fontFamily: fonts.display, fontSize: 24, lineHeight: 28 },
   stepValue: {
-    color: colors.ink,
+    color: colors.text,
     fontFamily: fonts.display,
     fontSize: size.title,
     minWidth: 32,
@@ -634,7 +653,7 @@ const styles = StyleSheet.create({
   },
 
   label: { fontFamily: fonts.bodyBold, fontSize: size.small, letterSpacing: 0.5 },
-  bodyText: { color: colors.ink, fontFamily: fonts.body, fontSize: size.body, lineHeight: 24 },
+  bodyText: { color: colors.text, fontFamily: fonts.body, fontSize: size.body, lineHeight: 24 },
 
   sticker: {
     alignSelf: 'center',
@@ -643,17 +662,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
     borderWidth: OUTLINE + 1,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     borderRadius: radius.pill,
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
-    shadowColor: colors.ink,
+    shadowColor: colors.outline,
     shadowOpacity: 1,
     shadowRadius: 0,
     shadowOffset: { width: 4, height: 4 },
     elevation: 6,
   },
-  stickerText: { color: colors.white, fontFamily: fonts.display },
+  stickerText: {
+    color: colors.white,
+    fontFamily: fonts.display,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  glow: { position: 'absolute', borderRadius: 9999, opacity: 0.1 },
   confetti: {
     position: 'absolute',
     top: '50%',

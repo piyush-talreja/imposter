@@ -7,7 +7,7 @@ import { alive } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { useBlockBack } from '@/lib/useBlockBack';
-import { CONFETTI, colors, fonts, onColor, radius, size, space } from '@/theme/tokens';
+import { colors, fonts, onColor, radius, size, space } from '@/theme/tokens';
 
 export default function Clues() {
   const { game, players } = useGame();
@@ -20,7 +20,7 @@ export default function Clues() {
   const speakers = alive(game);
   const done = turn >= speakers.length;
   const speaker = speakers[Math.min(turn, speakers.length - 1)];
-  const colorOf = (id: string) => CONFETTI[game.order.indexOf(id) % CONFETTI.length];
+  const colorOf = (_id: string) => colors.pink;
 
   return (
     <Screen
@@ -33,7 +33,7 @@ export default function Clues() {
           <Button label="Vote someone out" onPress={() => router.replace('/vote-out')} />
         ) : (
           <>
-            <Button label="Next player" color={colors.blue} onPress={() => setTurn(turn + 1)} />
+            <Button label="Next player" onPress={() => setTurn(turn + 1)} />
             <Button label="Skip to the vote" variant="ghost" onPress={() => router.replace('/vote-out')} />
           </>
         )
@@ -41,16 +41,16 @@ export default function Clues() {
     >
       <Pop key={done ? 'done' : speaker}>
         <Card
-          color={done ? colors.yellow : colorOf(speaker)}
+          color={done ? colors.raised : colorOf(speaker)}
           tilt={done ? 1 : -1}
           style={styles.spotlight}
           badge={done ? 'Discuss' : `${turn + 1} of ${speakers.length}`}
-          badgeColor={colors.white}
+          badgeColor={colors.outline}
         >
           {done ? (
             <>
               <Text style={styles.emoji}>🗣️</Text>
-              <Text style={[styles.big, { color: colors.ink }]}>Who&apos;s faking it?</Text>
+              <Text style={[styles.big, { color: colors.text }]}>Who&apos;s faking it?</Text>
               <Body style={styles.center}>
                 Whose clue was a bit off? Who hesitated? Talk it through, then pick one player to vote out.
               </Body>
@@ -88,7 +88,7 @@ export default function Clues() {
               style={[
                 styles.pill,
                 active && { backgroundColor: colorOf(id), transform: [{ scale: 1.05 }] },
-                given && !active && { backgroundColor: colors.white },
+                given && !active && { backgroundColor: colors.raised },
                 out && styles.pillOut,
               ]}
             >
@@ -121,13 +121,13 @@ const styles = StyleSheet.create({
   list: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'center' },
   pill: {
     borderWidth: 2.5,
-    borderColor: colors.ink,
+    borderColor: colors.outline,
     borderRadius: radius.pill,
     paddingHorizontal: space.md,
     paddingVertical: 6,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.surface,
   },
-  pillOut: { borderStyle: 'dashed', backgroundColor: 'transparent', borderColor: colors.inkSoft },
-  pillText: { fontFamily: fonts.bodyBold, fontSize: size.body, color: colors.ink },
-  pillTextOut: { color: colors.inkSoft, textDecorationLine: 'line-through' },
+  pillOut: { borderStyle: 'dashed', backgroundColor: 'transparent', borderColor: colors.textSoft },
+  pillText: { fontFamily: fonts.bodyBold, fontSize: size.body, color: colors.text },
+  pillTextOut: { color: colors.textSoft, textDecorationLine: 'line-through' },
 });
