@@ -20,6 +20,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - Reveal is now a fade: the cover fades as it peels and the word fades up; the card is no longer tilted or scaled
 
 ### Fixed
+- Creating or joining a room failed with "Something went wrong" when the device held a sign-in for a player that no longer exists (for example after the backend was reset); the app now checks the saved sign-in once per launch and starts a fresh one if needed
+- Back did nothing on a screen opened directly from a link or after a refresh; it now goes home
 
 - Simpler scoring: Imposter wins +6 (nobody else scores); Imposter caught, everyone else +2; bonus round, Undercover caught, every Villager +2; Undercover gets away +4. The whole winning side scores, including players voted out earlier
 - The reveal sound played only on every other press: it now waits for the rewind to finish before replaying, and uses a small pool of players so rapid presses overlap

@@ -57,7 +57,8 @@ export default function HostRoom() {
       setOnlineSettings(settings);
       if (roomId) {
         await updateSettings(roomId, settings);
-        router.back();
+        if (router.canGoBack()) router.back();
+        else router.replace({ pathname: '/online/room/[id]', params: { id: roomId } });
       } else {
         const room = await createRoom(onlineName, settings);
         router.replace({ pathname: '/online/room/[id]', params: { id: room.room_id } });

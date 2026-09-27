@@ -20,15 +20,38 @@ export function supabase(): SupabaseClient {
   return client;
 }
 
+let verified: Promise<string> | null = null;
+
 /**
  * Sign in anonymously the first time someone goes online, then reuse the same
  * identity (kept on the device), so rejoining a room is the same player.
+ *
+ * A saved session can outlive its user (the account was removed, or the backend
+ * was reset). Its token still looks valid, so check it with the server once per
+ * app run, and start a fresh anonymous session if the user no longer exists.
  */
-export async function ensureSignedIn(): Promise<string> {
-  const sb = supabase();
-  const { data } = await sb.auth.getSession();
-  if (data.session) return data.session.user.id;
-  const { data: signedIn, error } = await sb.auth.signInAnonymously();
-  if (error || !signedIn.user) throw error ?? new Error('Anonymous sign-in failed');
-  return signedIn.user.id;
+export function ensureSignedIn(): Promise<string> {
+  verified ??= (async () => {
+    const sb = supabase();
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      const { data: user, error } = await sb.auth.getUser();
+      if (!error && user.user) return user.user.id;
+      // Only a definite "this user is gone" resets the session; being offline doesn't.
+      if (error && !isAuthGone(error)) throw error;
+      await sb.auth.signOut({ scope: 'local' });
+    }
+    const { data: signedIn, error } = await sb.auth.signInAnonymously();
+    if (error || !signedIn.user) throw error ?? new Error('Anonymous sign-in failed');
+    return signedIn.user.id;
+  })().catch((e) => {
+    verified = null; // let the next call try again
+    throw e;
+  });
+  return verified;
 }
+
+const isAuthGone = (e: { status?: number; message?: string }) =>
+  e.status === 401 ||
+  e.status === 403 ||
+  /does not exist|not found|invalid (jwt|token)|session/i.test(e.message ?? '');
