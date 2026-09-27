@@ -43,12 +43,17 @@ Each round, everyone still in gives a one-word clue, the table discusses, and th
 
 ### Scoring
 
-| Event                                                | Points                                   |
-| ---------------------------------------------------- | ---------------------------------------- |
-| Imposter caught                                      | every Villager and Undercover **+2**     |
-| Imposter wins                                        | each Imposter **+6**; nobody else scores |
-| Undercover caught (at any point)                     | every Villager **+2** per Undercover     |
-| Undercover never caught, and the Imposter was caught | that Undercover **+4**                   |
+The game has two stages. **Stage 1** is the Imposter against everyone else, Villagers and Undercover together. **Stage 2** (the bonus round, only once the Imposter is caught) is the Villagers against the Undercover.
+
+| Event                                | Points                                                                                  |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| Imposter wins                        | each Imposter **+6**. Nobody else scores                                                |
+| Imposter caught                      | every Villager and Undercover **+2**, whether still in or voted out (it's a team win)   |
+| Still in when the Imposter is caught | **+1** (rewards not looking suspicious, without punishing players voted out by mistake) |
+| Undercover caught (either stage)     | every Villager **+3** per Undercover                                                    |
+| Undercover never caught              | that Undercover **+5**                                                                  |
+
+So a caught Undercover leaves the Villagers ahead (5–6 against 2–3), and an Undercover who gets away beats them (8 against 2–3).
 
 ### Options
 

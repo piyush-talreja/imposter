@@ -14,25 +14,21 @@ import { ROLE_META, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 /** What happened this game, as a few short lines instead of per-player text. */
 function summary(game: Game): { text: string; points: number; color: string }[] {
-  const lines: { text: string; points: number; color: string }[] = [];
+  if (game.winner === 'imposters')
+    return [{ text: 'Imposter wins · nobody else scores', points: POINTS.imposterWins, color: colors.pink }];
   const undercovers = Object.keys(game.roles).filter((id) => game.roles[id] === 'undercover');
   const caught = undercovers.filter((id) => game.eliminated.includes(id)).length;
-  if (game.winner === 'villagers') {
-    lines.push({
-      text: 'Imposter caught · Villagers & Undercover',
-      points: POINTS.imposterCaught,
-      color: colors.cyan,
-    });
-  } else {
-    lines.push({ text: 'Imposter wins', points: POINTS.imposterWins, color: colors.pink });
-  }
+  const lines: { text: string; points: number; color: string }[] = [
+    { text: 'Imposter caught · everyone else', points: POINTS.imposterCaught, color: colors.cyan },
+    { text: 'Still in when the Imposter was caught', points: POINTS.stillIn, color: colors.cyan },
+  ];
   if (caught > 0)
     lines.push({
       text: 'Undercover caught · Villagers',
       points: POINTS.undercoverCaught * caught,
       color: colors.cyan,
     });
-  if (game.winner === 'villagers' && caught < undercovers.length) {
+  if (caught < undercovers.length) {
     lines.push({ text: 'Undercover never caught', points: POINTS.undercoverUndetected, color: colors.amber });
   }
   return lines;

@@ -59,6 +59,7 @@ const baseGame = (overrides: Partial<Game> = {}): Game => ({
   lastGuess: null,
   winner: null,
   over: false,
+  survivors: [],
   ...overrides,
 });
 
@@ -209,7 +210,6 @@ describe('stage 1: find the imposter', () => {
     const g = resolveGuess(eliminate(baseGame(), 'fay'), '  pizzas! ');
     expect(g.winner).toBe('imposters');
     expect(g.over).toBe(true);
-    // Only the imposter scores; the undercover gets nothing when the imposter wins.
     expect(points(g)).toEqual({ fay: POINTS.imposterWins });
   });
 
@@ -232,9 +232,26 @@ describe('stage 1: find the imposter', () => {
     // Imposter caught and no undercover left: game over, no bonus round.
     expect(g.winner).toBe('villagers');
     expect(g.over).toBe(true);
-    expect(points(g).ana).toBe(POINTS.imposterCaught + POINTS.undercoverCaught);
+    expect(points(g).ana).toBe(POINTS.imposterCaught + POINTS.stillIn + POINTS.undercoverCaught);
+    // Out before the imposter was caught: team points, no still-in bonus.
     expect(points(g).eli).toBe(POINTS.imposterCaught);
     expect(points(g).fay).toBeUndefined();
+  });
+
+  it('when the imposter wins, nobody else scores, even for catching the undercover', () => {
+    let g = eliminate(baseGame(), 'eli');
+    g = resolveGuess(eliminate(g, 'fay'), 'Pizza');
+    expect(g.winner).toBe('imposters');
+    expect(points(g)).toEqual({ fay: POINTS.imposterWins });
+  });
+
+  it('villagers voted out before the catch still share the team win', () => {
+    let g = eliminate(baseGame(), 'ana');
+    g = resolveGuess(eliminate(g, 'fay'), 'Pasta');
+    g = eliminate(g, 'eli');
+    expect(g.over).toBe(true);
+    expect(points(g).ana).toBe(POINTS.imposterCaught + POINTS.undercoverCaught);
+    expect(points(g).ben).toBe(POINTS.imposterCaught + POINTS.stillIn + POINTS.undercoverCaught);
   });
 });
 
@@ -249,25 +266,23 @@ describe('stage 2: the undercover bonus round', () => {
     expect(nextRound(g).round).toBe(2);
   });
 
-  it('villagers earn the bonus for catching the undercover', () => {
+  it('undercover caught: villagers score more than the undercover', () => {
     const g = eliminate(imposterCaught(), 'eli');
     expect(g.over).toBe(true);
-    expect(points(g)).toEqual({
-      ana: POINTS.imposterCaught + POINTS.undercoverCaught,
-      ben: POINTS.imposterCaught + POINTS.undercoverCaught,
-      cy: POINTS.imposterCaught + POINTS.undercoverCaught,
-      dee: POINTS.imposterCaught + POINTS.undercoverCaught,
-      eli: POINTS.imposterCaught,
-    });
+    const villager = POINTS.imposterCaught + POINTS.stillIn + POINTS.undercoverCaught;
+    expect(points(g)).toEqual({ ana: villager, ben: villager, cy: villager, dee: villager, eli: 3 });
+    expect(villager).toBeGreaterThan(points(g).eli);
   });
 
-  it('an undercover who survives to the last villager earns the bonus', () => {
+  it('undercover never caught: the undercover scores more than the villagers', () => {
     let g = imposterCaught();
     for (const id of ['ana', 'ben', 'cy']) g = eliminate(g, id);
     expect(g.over).toBe(true);
     expect(g.winner).toBe('villagers');
-    expect(points(g).eli).toBe(POINTS.imposterCaught + POINTS.undercoverUndetected);
-    expect(points(g).dee).toBe(POINTS.imposterCaught);
+    expect(points(g).eli).toBe(POINTS.imposterCaught + POINTS.stillIn + POINTS.undercoverUndetected);
+    // Everyone in at the catch keeps the still-in bonus, even if voted out in the bonus round.
+    expect(points(g).ana).toBe(POINTS.imposterCaught + POINTS.stillIn);
+    expect(points(g).eli).toBeGreaterThan(points(g).dee);
   });
 
   it('scores are only awarded once the game is over', () => {
