@@ -16,7 +16,7 @@
 //      undercover is still in, a bonus round begins: villagers earn extra points
 //      for catching them, and an undercover who is never caught earns a bonus.
 
-import { type Difficulty, type WordEntry } from '@/features/words/words';
+import type { Difficulty, WordEntry } from '@/features/words/words';
 
 export type Rng = () => number;
 
