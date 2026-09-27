@@ -11,12 +11,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - The group eliminates one player per round on a single screen, so nobody passes the phone to vote.
 - An eliminated Imposter gets a typed last guess. A correct answer wins; the table can accept a near miss.
 - Win conditions: Villagers win when all infiltrators are out; Undercover and Imposter win when one Villager is left.
-- Complete visual redesign with a noir "classified case file" theme, custom fonts, film grain and animated rubber-stamp reveals.
+- Complete visual redesign, "Sticker Party": a bright, colorful sticker look with bouncy animations, confetti bursts and a role emoji for each role. Crime wording ("suspects", "case", "accuse") is replaced with party language ("players", "Clue time", "Vote out").
 - Web build is now a single-page app (fixes a hydration warning).
 
 ### Added
 
-- Press-and-hold to reveal your word under a redaction bar; letting go hides it.
+- Press and hold to peel back a sticker and see your word; letting go hides it.
 - Role setup with a suggested split for the group size, or manual counts.
 - "Imposter never goes first" rule (on by default).
 

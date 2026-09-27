@@ -2,11 +2,22 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Button, Label, Paper, Screen, Stepper, Tag, ToggleRow, Type } from '@/components/ui';
+import { Body, Button, Card, Chip, Label, Screen, Stepper, ToggleRow } from '@/components/ui';
 import { MIN_PLAYERS, effectiveRoles, maxInfiltrators, wordPool } from '@/features/game/engine';
 import { useGame } from '@/features/game/store';
 import { CATEGORIES, WORDS, type Difficulty } from '@/features/words/words';
-import { ROLE_META, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
+import {
+  CONFETTI,
+  OUTLINE,
+  ROLE_META,
+  TOUCH,
+  colors,
+  fonts,
+  onColor,
+  radius,
+  size,
+  space,
+} from '@/theme/tokens';
 
 const DIFFICULTIES: { id: Difficulty; label: string }[] = [
   { id: 'easy', label: 'Easy' },
@@ -31,17 +42,17 @@ export default function Setup() {
   const n = players.length;
   const roles = effectiveRoles(settings, Math.max(n, MIN_PLAYERS));
   const maxInf = maxInfiltrators(Math.max(n, MIN_PLAYERS));
-  const villagers = n - roles.undercover - roles.imposter;
+  const villagers = Math.max(n - roles.undercover - roles.imposter, 0);
   const setRoles = (patch: Partial<typeof roles>) =>
     updateSettings({ autoRoles: false, roles: { ...roles, ...patch } });
 
   const problem =
     n < MIN_PLAYERS
-      ? `Add ${MIN_PLAYERS - n} more suspect${MIN_PLAYERS - n === 1 ? '' : 's'}`
+      ? `Add ${MIN_PLAYERS - n} more player${MIN_PLAYERS - n === 1 ? '' : 's'}`
       : settings.difficulties.length === 0
         ? 'Pick at least one difficulty'
         : wordPool(WORDS, settings).length === 0
-          ? 'No words match. Widen the case files'
+          ? 'No words match. Pick more topics'
           : null;
 
   const start = () => {
@@ -52,39 +63,53 @@ export default function Setup() {
 
   return (
     <Screen
-      kicker="NEW CASE"
-      title="Brief the table"
+      kicker="NEW GAME"
+      title="Who's playing?"
       footer={
         <>
           {problem ? <Text style={styles.problem}>{problem}</Text> : null}
-          <Button label="Deal the cards" onPress={start} disabled={!!problem} />
+          <Button label="Deal the words!" onPress={start} disabled={!!problem} />
         </>
       }
     >
-      <Paper tab={`Suspects · ${n}`} tilt={-0.4}>
-        <Type style={styles.hint}>Add everyone in seating order. Clues go clockwise.</Type>
-        {players.map((p, i) => (
-          <View key={p.id} style={styles.player}>
-            <Text style={styles.playerIndex}>{String(i + 1).padStart(2, '0')}</Text>
-            <Text style={styles.playerName}>{p.name}</Text>
-            <Pressable
-              onPress={() => removePlayer(p.id)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={`Remove ${p.name}`}
-              style={styles.remove}
+      <Card badge={`Players · ${n}`} badgeColor={colors.pink} tilt={-0.6}>
+        <Body style={styles.hint}>
+          Add everyone in the order you&apos;re sitting. Clues go round clockwise.
+        </Body>
+        <View style={styles.players}>
+          {players.map((p, i) => (
+            <View
+              key={p.id}
+              style={[
+                styles.player,
+                {
+                  backgroundColor: CONFETTI[i % CONFETTI.length],
+                  transform: [{ rotate: `${i % 2 ? 2 : -2}deg` }],
+                },
+              ]}
             >
-              <Text style={styles.removeText}>✕</Text>
-            </Pressable>
-          </View>
-        ))}
+              <Text style={[styles.playerName, { color: onColor(CONFETTI[i % CONFETTI.length]) }]}>
+                {p.name}
+              </Text>
+              <Pressable
+                onPress={() => removePlayer(p.id)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${p.name}`}
+                style={styles.remove}
+              >
+                <Text style={styles.removeText}>×</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
         <View style={styles.addRow}>
           <TextInput
             value={name}
             onChangeText={setName}
             onSubmitEditing={submitName}
-            placeholder="Suspect's name"
-            placeholderTextColor={colors.muted}
+            placeholder="Add a name"
+            placeholderTextColor={colors.inkSoft}
             returnKeyType="done"
             submitBehavior="submit"
             maxLength={16}
@@ -94,96 +119,104 @@ export default function Setup() {
           />
           <Button
             label="Add"
-            variant="stamp"
-            ink={colors.ink}
+            color={colors.blue}
             onPress={submitName}
             disabled={!name.trim() || duplicate}
             style={styles.addButton}
           />
         </View>
         {duplicate && name.trim() ? <Text style={styles.problem}>That name is taken</Text> : null}
-      </Paper>
+      </Card>
 
-      <Paper tab="Roles" tilt={0.5}>
+      <Card badge="Roles" badgeColor={colors.yellow} tilt={0.5}>
         <View style={styles.split}>
           {(['villager', 'undercover', 'imposter'] as const).map((r) => (
-            <View key={r} style={styles.splitItem}>
-              <Text style={[styles.splitCount, { color: ROLE_META[r].ink }]}>
-                {r === 'villager' ? Math.max(villagers, 0) : roles[r]}
-              </Text>
-              <Text style={[styles.splitLabel, { color: ROLE_META[r].ink }]}>{ROLE_META[r].label}</Text>
+            <View key={r} style={[styles.splitItem, { backgroundColor: ROLE_META[r].color }]}>
+              <Text style={styles.splitEmoji}>{ROLE_META[r].emoji}</Text>
+              <Text style={styles.splitCount}>{r === 'villager' ? villagers : roles[r]}</Text>
+              <Text style={styles.splitLabel}>{ROLE_META[r].label}</Text>
             </View>
           ))}
         </View>
         <Stepper
-          label="Undercover"
-          hint="Gets a similar word, doesn't know it"
-          ink={colors.undercover}
+          label="🕶️ Undercover"
+          hint="Gets a similar word and doesn't know it"
+          color={colors.orange}
           value={roles.undercover}
           min={roles.imposter === 0 ? 1 : 0}
           max={maxInf - roles.imposter}
           onChange={(v) => setRoles({ undercover: v })}
         />
         <Stepper
-          label="Imposter"
-          hint="Gets no word, knows it"
-          ink={colors.imposter}
+          label="🎭 Imposter"
+          hint="Gets no word, and knows it"
+          color={colors.pink}
           value={roles.imposter}
           min={roles.undercover === 0 ? 1 : 0}
           max={maxInf - roles.undercover}
           onChange={(v) => setRoles({ imposter: v })}
         />
-        <Tag
-          label={settings.autoRoles ? '✓ Suggested split' : 'Use suggested split'}
-          selected={settings.autoRoles}
-          onPress={() => updateSettings({ autoRoles: true })}
-        />
-      </Paper>
+        <View style={styles.chips}>
+          <Chip
+            label={settings.autoRoles ? '✓ Best mix for your group' : 'Use the best mix'}
+            selected={settings.autoRoles}
+            color={colors.mint}
+            onPress={() => updateSettings({ autoRoles: true })}
+          />
+        </View>
+      </Card>
 
-      <Paper tab="Case files" tilt={-0.3}>
-        <View style={styles.tags}>
-          <Tag
-            label="All"
+      <Card badge="Topics" badgeColor={colors.mint} tilt={-0.4}>
+        <View style={styles.chips}>
+          <Chip
+            label="🎲 All"
             selected={settings.categoryIds.length === 0}
             onPress={() => updateSettings({ categoryIds: [] })}
           />
-          {CATEGORIES.map((c) => (
-            <Tag
+          {CATEGORIES.map((c, i) => (
+            <Chip
               key={c.id}
               label={`${c.emoji} ${c.name}`}
+              color={
+                CONFETTI[i % CONFETTI.length] === colors.yellow
+                  ? colors.orange
+                  : CONFETTI[i % CONFETTI.length]
+              }
               selected={settings.categoryIds.includes(c.id)}
               onPress={() => updateSettings({ categoryIds: toggle(settings.categoryIds, c.id) })}
             />
           ))}
         </View>
-        <Label>Difficulty</Label>
-        <View style={styles.tags}>
+        <Label>How tricky?</Label>
+        <View style={styles.chips}>
           {DIFFICULTIES.map((d) => (
-            <Tag
+            <Chip
               key={d.id}
               label={d.label}
+              color={colors.purple}
               selected={settings.difficulties.includes(d.id)}
               onPress={() => updateSettings({ difficulties: toggle(settings.difficulties, d.id) })}
             />
           ))}
-          <Tag
+          <Chip
             label="🧒 Kids"
+            color={colors.mint}
             selected={settings.difficulties.length === 1 && settings.difficulties[0] === 'easy'}
             onPress={() => updateSettings({ difficulties: ['easy'] })}
           />
         </View>
-      </Paper>
+      </Card>
 
-      <Paper tab="House rules" tilt={0.4}>
+      <Card badge="House rules" badgeColor={colors.blue} tilt={0.4}>
         <ToggleRow
-          label="Imposter sees category"
-          hint="A lifeline for the one with no word"
+          label="Imposter sees the topic"
+          hint="A little help for the one with no word"
           value={settings.imposterSeesCategory}
           onChange={(v) => updateSettings({ imposterSeesCategory: v })}
         />
         <ToggleRow
           label="Imposter never goes first"
-          hint="Nobody should bluff blind on clue one"
+          hint="Nobody should have to fake the very first clue"
           value={settings.imposterNeverFirst}
           onChange={(v) => updateSettings({ imposterNeverFirst: v })}
         />
@@ -193,51 +226,58 @@ export default function Setup() {
           value={settings.scoring}
           onChange={(v) => updateSettings({ scoring: v })}
         />
-      </Paper>
+      </Card>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  hint: { color: colors.muted, fontSize: size.small },
-  problem: { color: colors.brass, fontFamily: fonts.type, fontSize: size.small, textAlign: 'center' },
+  hint: { color: colors.inkSoft, fontSize: size.small + 1, lineHeight: 20 },
+  problem: { color: colors.pink, fontFamily: fonts.bodyBold, fontSize: size.small + 1, textAlign: 'center' },
+  players: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   player: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
-    minHeight: TOUCH,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.paperEdge,
-    borderStyle: 'dashed',
+    borderWidth: 2.5,
+    borderColor: colors.ink,
+    borderRadius: radius.pill,
+    paddingLeft: space.md,
+    minHeight: 42,
   },
-  playerIndex: { color: colors.muted, fontFamily: fonts.type, width: 24 },
-  playerName: { color: colors.ink, fontFamily: fonts.type, fontSize: size.lead, flex: 1 },
-  remove: { width: TOUCH, height: TOUCH, alignItems: 'center', justifyContent: 'center' },
-  removeText: { color: colors.muted, fontSize: size.body },
-  addRow: { flexDirection: 'row', gap: space.sm },
+  playerName: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: size.body },
+  remove: { width: 38, height: 40, alignItems: 'center', justifyContent: 'center' },
+  removeText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 22, lineHeight: 24 },
+  addRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   input: {
     flex: 1,
     minWidth: 0, // web TextInput has an intrinsic width that otherwise pushes Add out
-    minHeight: TOUCH + 8,
-    borderRadius: radius.sm,
-    backgroundColor: colors.cream,
-    borderWidth: 1.5,
+    minHeight: TOUCH + 10,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    borderWidth: OUTLINE,
     borderColor: colors.ink,
     color: colors.ink,
-    fontFamily: fonts.type,
+    fontFamily: fonts.bodyBold,
     fontSize: size.body + 1,
     paddingHorizontal: space.md,
   },
-  addButton: { paddingHorizontal: space.lg, flexShrink: 0 },
-  split: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingBottom: space.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.paperEdge,
+  addButton: { flexShrink: 0 },
+  split: { flexDirection: 'row', gap: space.sm },
+  splitItem: {
+    flex: 1,
+    alignItems: 'center',
+    borderWidth: 2.5,
+    borderColor: colors.ink,
+    borderRadius: radius.md,
+    paddingVertical: space.sm,
   },
-  splitItem: { alignItems: 'center' },
-  splitCount: { fontFamily: fonts.display, fontSize: size.hero, lineHeight: size.hero + 6 },
-  splitLabel: { fontFamily: fonts.stencil, fontSize: size.small, letterSpacing: 1.5 },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  splitEmoji: { fontSize: 20 },
+  splitCount: {
+    fontFamily: fonts.display,
+    fontSize: size.title + 2,
+    lineHeight: size.title + 10,
+    color: colors.ink,
+  },
+  splitLabel: { fontFamily: fonts.bodyBold, fontSize: size.small - 1, color: colors.ink },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });

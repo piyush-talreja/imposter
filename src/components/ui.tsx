@@ -1,10 +1,8 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -12,6 +10,7 @@ import {
   Switch,
   Text,
   View,
+  useWindowDimensions,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
@@ -19,32 +18,44 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { tap, thud } from '@/lib/haptics';
-import { TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
+import { CONFETTI, OUTLINE, SHADOW, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
-const GRAIN = require('@/assets/images/grain.png');
 export const NATIVE_DRIVER = Platform.OS !== 'web';
 
-/** Tiled film grain. <Image resizeMode="repeat"> tiles on both native and web. */
-function Grain({ opacity }: { opacity: number }) {
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Image source={GRAIN} resizeMode="repeat" style={{ width: '100%', height: '100%', opacity }} />
-    </View>
-  );
-}
+// Deterministic "random" scatter so the background is stable between renders.
+const SHAPES = Array.from({ length: 14 }, (_, i) => ({
+  x: (i * 73) % 100,
+  y: (i * 41 + 7) % 100,
+  s: 10 + ((i * 29) % 26),
+  kind: i % 3, // 0 dot, 1 square, 2 pill
+  rot: (i * 47) % 90,
+  color: CONFETTI[i % CONFETTI.length],
+}));
 
-/** Dark desk with a warm lamp-light vignette and film grain. */
-export function Desk({ children }: { children: ReactNode }) {
+/** Cream table scattered with soft confetti shapes. */
+export function Table({ children }: { children: ReactNode }) {
+  const { width, height } = useWindowDimensions();
   return (
     <View style={styles.fill}>
-      <LinearGradient
-        colors={[colors.deskLight, colors.desk, '#0A0807']}
-        locations={[0, 0.55, 1]}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.8, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <Grain opacity={0.9} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} />
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        {SHAPES.map((p, i) => (
+          <View
+            key={i}
+            style={{
+              position: 'absolute',
+              left: (p.x / 100) * width,
+              top: (p.y / 100) * height,
+              width: p.kind === 2 ? p.s * 2.2 : p.s,
+              height: p.s,
+              borderRadius: p.kind === 1 ? 3 : p.s,
+              backgroundColor: p.color,
+              opacity: 0.22,
+              transform: [{ rotate: `${p.rot}deg` }],
+            }}
+          />
+        ))}
+      </View>
       {children}
     </View>
   );
@@ -59,7 +70,6 @@ export function Screen({
   footer,
   children,
 }: {
-  /** Small typewriter line above the title, e.g. "Case file · Round 2". */
   kicker?: string;
   title?: string;
   /** Defaults to router.back; pass null to hide the back button. */
@@ -72,7 +82,7 @@ export function Screen({
   const back = onBack === undefined ? () => router.back() : onBack;
   const body = <View style={styles.body}>{children}</View>;
   return (
-    <Desk>
+    <Table>
       <SafeAreaView style={styles.fill} edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.column}>
           <View style={styles.header}>
@@ -84,12 +94,16 @@ export function Screen({
                 accessibilityLabel={backLabel}
                 style={styles.back}
               >
-                <Text style={styles.backText}>← {backLabel.toUpperCase()}</Text>
+                <Text style={styles.backText}>‹ {backLabel}</Text>
               </Pressable>
             ) : (
               <View style={{ height: space.sm }} />
             )}
-            {kicker ? <Text style={styles.kicker}>{kicker}</Text> : null}
+            {kicker ? (
+              <View style={styles.kicker}>
+                <Text style={styles.kickerText}>{kicker}</Text>
+              </View>
+            ) : null}
             {title ? (
               <Text style={styles.title} accessibilityRole="header">
                 {title}
@@ -106,47 +120,48 @@ export function Screen({
           {footer ? <View style={styles.footer}>{footer}</View> : null}
         </View>
       </SafeAreaView>
-    </Desk>
+    </Table>
   );
 }
 
-/** A sheet of dossier paper, optionally with a manila tab label and a slight tilt. */
-export function Paper({
-  tab,
+/** A die-cut sticker panel: thick outline, hard shadow, optional label badge. */
+export function Card({
+  badge,
+  color = colors.paper,
+  badgeColor = colors.yellow,
   tilt = 0,
   children,
   style,
 }: {
-  tab?: string;
+  badge?: string;
+  color?: string;
+  badgeColor?: string;
   tilt?: number;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <View style={[{ transform: [{ rotate: `${tilt}deg` }] }, tab ? { paddingTop: 22 } : null]}>
-      {tab ? (
-        <View style={styles.tab}>
-          <Text style={styles.tabText}>{tab.toUpperCase()}</Text>
+    <View style={[{ transform: [{ rotate: `${tilt}deg` }] }, badge ? { paddingTop: 16 } : null]}>
+      <View style={styles.shadowWrap}>
+        <View style={styles.cardShadow} />
+        <View style={[styles.card, { backgroundColor: color }, style]}>{children}</View>
+      </View>
+      {badge ? (
+        <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+          <Text style={styles.badgeText}>{badge}</Text>
         </View>
       ) : null}
-      <View style={[styles.paper, style]}>
-        <Grain opacity={0.6} />
-        {children}
-      </View>
     </View>
   );
 }
 
-type ButtonVariant = 'stamp' | 'paper' | 'ghost';
+type ButtonVariant = 'pop' | 'outline' | 'ghost';
 
-/**
- * `stamp`: red rubber-stamp CTA. `paper`: secondary on the desk. `ghost`: text only.
- */
 export function Button({
   label,
   onPress,
-  variant = 'stamp',
-  ink = colors.imposter,
+  variant = 'pop',
+  color = colors.pink,
   disabled,
   style,
   accessibilityHint,
@@ -154,48 +169,69 @@ export function Button({
   label: string;
   onPress: () => void;
   variant?: ButtonVariant;
-  ink?: string;
+  color?: string;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
 }) {
+  const press = () => {
+    tap();
+    onPress();
+  };
+  if (variant === 'ghost') {
+    return (
+      <Pressable
+        onPress={press}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={[styles.ghost, disabled && { opacity: 0.4 }, style]}
+      >
+        <Text style={styles.ghostText}>{label}</Text>
+      </Pressable>
+    );
+  }
+  const lightFill = variant === 'outline' || color === colors.yellow;
   return (
     <Pressable
-      onPress={() => {
-        tap();
-        onPress();
-      }}
+      onPress={press}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
       accessibilityHint={accessibilityHint}
-      style={({ pressed }) => [
-        styles.button,
-        variant === 'stamp' && { backgroundColor: ink, borderColor: ink },
-        variant === 'paper' && styles.buttonPaper,
-        variant === 'ghost' && styles.buttonGhost,
-        pressed && { transform: [{ scale: 0.97 }, { rotate: '-0.6deg' }] },
-        disabled && { opacity: 0.35 },
-        style,
-      ]}
+      style={[styles.buttonWrap, disabled && { opacity: 0.45 }, style]}
     >
-      {variant === 'stamp' ? <View pointerEvents="none" style={styles.stampInner} /> : null}
-      <Text
-        style={[
-          styles.buttonText,
-          variant === 'paper' && { color: colors.ink },
-          variant === 'ghost' && { color: colors.mutedOnDark, fontFamily: fonts.type, letterSpacing: 1 },
-        ]}
-      >
-        {variant === 'ghost' ? label : label.toUpperCase()}
-      </Text>
+      {({ pressed }) => (
+        <>
+          <View style={styles.buttonShadow} />
+          <View
+            style={[
+              styles.button,
+              { backgroundColor: variant === 'pop' ? color : colors.white },
+              // Pressing pushes the sticker down onto its shadow.
+              pressed && { transform: [{ translateX: SHADOW - 1 }, { translateY: SHADOW - 1 }] },
+            ]}
+          >
+            <Text style={[styles.buttonText, !lightFill && { color: colors.white }]}>{label}</Text>
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }
 
-/** Evidence tag: a toggleable label for categories and difficulties. */
-export function Tag({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+export function Chip({
+  label,
+  selected,
+  onPress,
+  color = colors.blue,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  color?: string;
+}) {
   return (
     <Pressable
       onPress={() => {
@@ -205,9 +241,9 @@ export function Tag({ label, selected, onPress }: { label: string; selected: boo
       accessibilityRole="checkbox"
       accessibilityLabel={label}
       accessibilityState={{ checked: selected }}
-      style={[styles.tag, selected && styles.tagSelected]}
+      style={[styles.chip, selected && { backgroundColor: color, transform: [{ rotate: '-2deg' }] }]}
     >
-      <Text style={[styles.tagText, selected && { color: colors.cream }]}>{label}</Text>
+      <Text style={[styles.chipText, selected && { color: colors.white }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -218,7 +254,7 @@ export function Stepper({
   value,
   min,
   max,
-  ink = colors.ink,
+  color = colors.ink,
   onChange,
 }: {
   label: string;
@@ -226,7 +262,7 @@ export function Stepper({
   value: number;
   min: number;
   max: number;
-  ink?: string;
+  color?: string;
   onChange: (v: number) => void;
 }) {
   const step = (d: number) => {
@@ -242,20 +278,20 @@ export function Stepper({
       disabled={off}
       accessibilityRole="button"
       accessibilityLabel={`${d < 0 ? 'Fewer' : 'More'} ${label}`}
-      style={[styles.stepButton, off && { opacity: 0.25 }]}
+      style={[styles.stepButton, { backgroundColor: off ? colors.white : color }, off && { opacity: 0.35 }]}
     >
-      <Text style={styles.stepGlyph}>{glyph}</Text>
+      <Text style={[styles.stepGlyph, !off && { color: colors.white }]}>{glyph}</Text>
     </Pressable>
   );
   return (
     <View style={styles.row}>
       <View style={styles.fill}>
-        <Text style={[styles.rowLabel, { color: ink }]}>{label}</Text>
+        <Text style={styles.rowLabel}>{label}</Text>
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       </View>
       <View style={styles.stepper}>
-        {btn(-1, '−', value <= min)}
-        <Text style={[styles.stepValue, { color: ink }]} accessibilityLabel={`${label}: ${value}`}>
+        {btn(-1, '–', value <= min)}
+        <Text style={styles.stepValue} accessibilityLabel={`${label}: ${value}`}>
           {value}
         </Text>
         {btn(1, '+', value >= max)}
@@ -288,37 +324,38 @@ export function ToggleRow({
           onChange(v);
         }}
         accessibilityLabel={label}
-        trackColor={{ true: colors.imposter, false: colors.paperEdge }}
-        thumbColor={colors.cream}
-        {...(Platform.OS === 'web' ? { activeThumbColor: colors.cream } : {})}
+        trackColor={{ true: colors.mint, false: '#E4D9C4' }}
+        thumbColor={colors.white}
+        {...(Platform.OS === 'web' ? { activeThumbColor: colors.white } : {})}
       />
     </View>
   );
 }
 
-/** Typewriter caps label. */
-export function Label({ children, color = colors.muted }: { children: ReactNode; color?: string }) {
+export function Label({ children, color = colors.inkSoft }: { children: ReactNode; color?: string }) {
   return <Text style={[styles.label, { color }]}>{children}</Text>;
 }
 
-export function Type({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
-  return <Text style={[styles.type, style]}>{children}</Text>;
+export function Body({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
+  return <Text style={[styles.bodyText, style]}>{children}</Text>;
 }
 
 /**
- * Rubber stamp that slams onto the page: drops from large and faint to its
- * resting size with a small overshoot, then keeps a slightly skewed angle.
+ * A sticker that gets slapped down: pops in from big with a springy overshoot
+ * and lands at a jaunty angle.
  */
-export function Stamp({
+export function Sticker({
   text,
-  ink,
-  angle = -8,
+  emoji,
+  color,
+  angle = -6,
   delay = 150,
-  fontSize = 42,
+  fontSize = 34,
   style,
 }: {
   text: string;
-  ink: string;
+  emoji?: string;
+  color: string;
   angle?: number;
   delay?: number;
   fontSize?: number;
@@ -326,16 +363,11 @@ export function Stamp({
 }) {
   const [t] = useState(() => new Animated.Value(0));
   useEffect(() => {
+    const id = setTimeout(thud, delay + 120);
     const anim = Animated.sequence([
       Animated.delay(delay),
-      Animated.timing(t, {
-        toValue: 1,
-        duration: 260,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: NATIVE_DRIVER,
-      }),
+      Animated.spring(t, { toValue: 1, friction: 4, tension: 120, useNativeDriver: NATIVE_DRIVER }),
     ]);
-    const id = setTimeout(thud, delay + 240);
     anim.start();
     return () => {
       clearTimeout(id);
@@ -347,29 +379,98 @@ export function Stamp({
       accessibilityRole="text"
       accessibilityLabel={text}
       style={[
-        styles.stamp,
-        { borderColor: ink },
+        styles.sticker,
+        { backgroundColor: color },
         {
-          opacity: t.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 0.5, 0.92] }),
+          opacity: t.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 1] }),
           transform: [
-            { rotate: `${angle}deg` },
-            { scale: t.interpolate({ inputRange: [0, 0.85, 1], outputRange: [2.6, 0.94, 1] }) },
+            {
+              rotate: t.interpolate({ inputRange: [0, 1], outputRange: [`${angle - 25}deg`, `${angle}deg`] }),
+            },
+            { scale: t.interpolate({ inputRange: [0, 1], outputRange: [2.2, 1] }) },
           ],
         },
         style,
       ]}
     >
-      <View style={[styles.stampRule, { borderColor: ink }]}>
-        <Text style={[styles.stampText, { color: ink, fontSize }]} numberOfLines={1} adjustsFontSizeToFit>
-          {text.toUpperCase()}
-        </Text>
-      </View>
+      {emoji ? <Text style={{ fontSize: fontSize * 0.9 }}>{emoji}</Text> : null}
+      <Text
+        style={[
+          styles.stickerText,
+          { fontSize, lineHeight: fontSize * 1.25 },
+          color === colors.yellow && { color: colors.ink },
+        ]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {text}
+      </Text>
     </Animated.View>
   );
 }
 
-/** Fade + rise for staggered entrances. */
-export function Rise({
+/** A burst of confetti flying out from the centre of its parent. Decorative only. */
+export function Confetti({ delay = 250, count = 22 }: { delay?: number; count?: number }) {
+  const [t] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    const anim = Animated.timing(t, {
+      toValue: 1,
+      duration: 1100,
+      delay,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: NATIVE_DRIVER,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [t, delay]);
+  return (
+    <View
+      pointerEvents="none"
+      style={styles.confetti}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {Array.from({ length: count }, (_, i) => {
+        const angle = (i / count) * Math.PI * 2 + (i % 3) * 0.3;
+        const dist = 110 + ((i * 37) % 90);
+        return (
+          <Animated.View
+            key={i}
+            style={{
+              position: 'absolute',
+              width: i % 2 ? 10 : 14,
+              height: i % 2 ? 10 : 6,
+              borderRadius: i % 3 === 0 ? 5 : 2,
+              backgroundColor: CONFETTI[i % CONFETTI.length],
+              opacity: t.interpolate({ inputRange: [0, 0.1, 0.8, 1], outputRange: [0, 1, 1, 0] }),
+              transform: [
+                {
+                  translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(angle) * dist] }),
+                },
+                // Arc outwards, then drift down a little.
+                {
+                  translateY: t.interpolate({
+                    inputRange: [0, 0.6, 1],
+                    outputRange: [0, Math.sin(angle) * dist - 30, Math.sin(angle) * dist + 40],
+                  }),
+                },
+                {
+                  rotate: t.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', `${(i % 2 ? 1 : -1) * 540}deg`],
+                  }),
+                },
+              ],
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+/** Bouncy entrance for staggered reveals. */
+export function Pop({
   children,
   delay = 0,
   style,
@@ -380,11 +481,11 @@ export function Rise({
 }) {
   const [t] = useState(() => new Animated.Value(0));
   useEffect(() => {
-    Animated.timing(t, {
+    Animated.spring(t, {
       toValue: 1,
-      duration: 420,
       delay,
-      easing: Easing.out(Easing.cubic),
+      friction: 6,
+      tension: 90,
       useNativeDriver: NATIVE_DRIVER,
     }).start();
   }, [t, delay]);
@@ -392,8 +493,11 @@ export function Rise({
     <Animated.View
       style={[
         {
-          opacity: t,
-          transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+          opacity: t.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] }),
+          transform: [
+            { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) },
+            { scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
+          ],
         },
         style,
       ]}
@@ -406,107 +510,153 @@ export function Rise({
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   column: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center' },
-  header: { paddingHorizontal: space.lg, paddingTop: space.xs, gap: 2 },
+  header: { paddingHorizontal: space.lg, paddingTop: space.xs, gap: space.xs },
   back: { minHeight: TOUCH - 8, justifyContent: 'center', alignSelf: 'flex-start' },
-  backText: { color: colors.mutedOnDark, fontFamily: fonts.type, fontSize: size.small, letterSpacing: 2 },
-  kicker: { color: colors.brass, fontFamily: fonts.type, fontSize: size.small, letterSpacing: 2.5 },
+  backText: { color: colors.inkSoft, fontFamily: fonts.bodyBold, fontSize: size.body },
+  kicker: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.ink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: 4,
+    transform: [{ rotate: '-2deg' }],
+  },
+  kickerText: {
+    color: colors.yellow,
+    fontFamily: fonts.bodyBold,
+    fontSize: size.small - 1,
+    letterSpacing: 1,
+  },
   title: {
-    color: colors.cream,
+    color: colors.ink,
     fontFamily: fonts.display,
     fontSize: size.title + 4,
-    lineHeight: size.title + 12,
+    lineHeight: size.title + 14,
   },
   scroll: { padding: space.lg, paddingBottom: space.xl },
   body: { gap: space.lg, flexGrow: 1 },
-  footer: { paddingHorizontal: space.lg, paddingBottom: space.md, paddingTop: space.sm, gap: space.xs },
+  footer: { paddingHorizontal: space.lg, paddingBottom: space.md, paddingTop: space.sm, gap: space.sm },
 
-  paper: {
-    backgroundColor: colors.paper,
-    borderRadius: radius.sm,
+  shadowWrap: { marginRight: SHADOW, marginBottom: SHADOW },
+  cardShadow: {
+    ...StyleSheet.absoluteFill,
+    top: SHADOW,
+    left: SHADOW,
+    right: -SHADOW,
+    bottom: -SHADOW,
+    backgroundColor: colors.ink,
+    borderRadius: radius.lg,
+  },
+  card: {
+    borderRadius: radius.lg,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
     padding: space.lg,
     gap: space.md,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.paperEdge,
-    shadowColor: '#000',
-    shadowOpacity: 0.55,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
   },
-  tab: {
+  badge: {
     position: 'absolute',
     top: 0,
     left: space.lg,
-    height: 26,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
+    borderRadius: radius.pill,
     paddingHorizontal: space.md,
-    backgroundColor: colors.paperShade,
-    borderTopLeftRadius: radius.md,
-    borderTopRightRadius: radius.md,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.paperEdge,
-    justifyContent: 'center',
+    paddingVertical: 3,
+    transform: [{ rotate: '-3deg' }],
   },
-  tabText: { fontFamily: fonts.type, fontSize: 11, letterSpacing: 2, color: colors.ink },
+  badgeText: { fontFamily: fonts.bodyBold, fontSize: size.small, color: colors.ink },
 
+  buttonWrap: { marginRight: SHADOW, marginBottom: SHADOW },
+  buttonShadow: {
+    ...StyleSheet.absoluteFill,
+    top: SHADOW,
+    left: SHADOW,
+    right: -SHADOW,
+    bottom: -SHADOW,
+    backgroundColor: colors.ink,
+    borderRadius: radius.md,
+  },
   button: {
     minHeight: TOUCH + 10,
-    borderRadius: radius.sm,
-    borderWidth: 2,
+    borderRadius: radius.md,
+    borderWidth: OUTLINE,
+    borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.lg,
   },
-  stampInner: {
-    ...StyleSheet.absoluteFill,
-    margin: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    borderRadius: 2,
-  },
-  buttonPaper: { backgroundColor: colors.paper, borderColor: colors.paperEdge },
-  buttonGhost: { backgroundColor: 'transparent', borderColor: 'transparent', minHeight: TOUCH },
-  buttonText: {
-    color: colors.cream,
-    fontFamily: fonts.stencil,
-    fontSize: size.lead,
-    letterSpacing: 2,
-    textAlign: 'center',
+  buttonText: { color: colors.ink, fontFamily: fonts.display, fontSize: size.lead + 2, textAlign: 'center' },
+  ghost: { minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },
+  ghostText: {
+    color: colors.inkSoft,
+    fontFamily: fonts.bodyBold,
+    fontSize: size.body,
+    textDecorationLine: 'underline',
   },
 
-  tag: {
-    minHeight: 38,
+  chip: {
+    minHeight: 40,
     paddingHorizontal: space.md,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
+    borderRadius: radius.pill,
+    borderWidth: 2.5,
     borderColor: colors.ink,
-    borderStyle: 'dashed',
+    backgroundColor: colors.white,
     justifyContent: 'center',
   },
-  tagSelected: { backgroundColor: colors.ink, borderStyle: 'solid' },
-  tagText: { color: colors.ink, fontFamily: fonts.type, fontSize: size.small + 1 },
+  chipText: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: size.small + 1 },
 
   row: { flexDirection: 'row', alignItems: 'center', minHeight: TOUCH, gap: space.sm },
-  rowLabel: { color: colors.ink, fontFamily: fonts.type, fontSize: size.body + 1 },
-  hint: { color: colors.muted, fontFamily: fonts.type, fontSize: size.small - 1, marginTop: 2 },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  rowLabel: { color: colors.ink, fontFamily: fonts.bodyBold, fontSize: size.body + 1 },
+  hint: { color: colors.inkSoft, fontFamily: fonts.body, fontSize: size.small - 1, marginTop: 1 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   stepButton: {
     width: TOUCH - 4,
     height: TOUCH - 4,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
+    borderRadius: (TOUCH - 4) / 2,
+    borderWidth: 2.5,
     borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepGlyph: { color: colors.ink, fontSize: 22, fontWeight: '700', marginTop: -2 },
-  stepValue: { fontFamily: fonts.display, fontSize: size.title, minWidth: 36, textAlign: 'center' },
+  stepGlyph: { color: colors.ink, fontFamily: fonts.display, fontSize: 24, lineHeight: 28 },
+  stepValue: {
+    color: colors.ink,
+    fontFamily: fonts.display,
+    fontSize: size.title,
+    minWidth: 32,
+    textAlign: 'center',
+  },
 
-  label: { fontFamily: fonts.type, fontSize: size.small, letterSpacing: 2.5 },
-  type: { color: colors.ink, fontFamily: fonts.type, fontSize: size.body, lineHeight: 23 },
+  label: { fontFamily: fonts.bodyBold, fontSize: size.small, letterSpacing: 0.5 },
+  bodyText: { color: colors.ink, fontFamily: fonts.body, fontSize: size.body, lineHeight: 24 },
 
-  stamp: { alignSelf: 'center', maxWidth: '94%', borderWidth: 4, borderRadius: radius.md, padding: 3 },
-  stampRule: { borderWidth: 1.5, borderRadius: radius.sm, paddingHorizontal: space.md, paddingVertical: 2 },
-  stampText: { fontFamily: fonts.stencil, letterSpacing: 3 },
+  sticker: {
+    alignSelf: 'center',
+    maxWidth: '94%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    borderWidth: OUTLINE + 1,
+    borderColor: colors.ink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    shadowColor: colors.ink,
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    shadowOffset: { width: 4, height: 4 },
+    elevation: 6,
+  },
+  stickerText: { color: colors.white, fontFamily: fonts.display },
+  confetti: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: 0,
+    height: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

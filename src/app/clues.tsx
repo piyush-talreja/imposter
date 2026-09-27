@@ -2,10 +2,10 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Label, Paper, Rise, Screen, Type } from '@/components/ui';
+import { Body, Button, Card, Label, Pop, Screen } from '@/components/ui';
 import { alive } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
-import { colors, fonts, size, space } from '@/theme/tokens';
+import { CONFETTI, colors, fonts, onColor, radius, size, space } from '@/theme/tokens';
 
 export default function Clues() {
   const { game, players } = useGame();
@@ -15,80 +15,80 @@ export default function Clues() {
   const speakers = alive(game);
   const done = turn >= speakers.length;
   const speaker = speakers[Math.min(turn, speakers.length - 1)];
+  const colorOf = (id: string) => CONFETTI[game.order.indexOf(id) % CONFETTI.length];
 
   return (
     <Screen
-      kicker={`ROUND ${game.round} · STATEMENTS`}
-      title={done ? 'All statements taken' : 'Give one clue'}
+      kicker={`ROUND ${game.round} · CLUE TIME`}
+      title={done ? 'Time to talk!' : 'Your turn!'}
       backLabel="Quit"
       onBack={() => router.dismissTo('/')}
       footer={
         done ? (
-          <Button label="Discuss & accuse" onPress={() => router.replace('/eliminate')} />
+          <Button label="Vote someone out" onPress={() => router.replace('/vote-out')} />
         ) : (
           <>
-            <Button label="Next suspect" ink={colors.ink} onPress={() => setTurn(turn + 1)} />
-            <Button
-              label="Skip to the accusation"
-              variant="ghost"
-              onPress={() => router.replace('/eliminate')}
-            />
+            <Button label="Next player" color={colors.blue} onPress={() => setTurn(turn + 1)} />
+            <Button label="Skip to the vote" variant="ghost" onPress={() => router.replace('/vote-out')} />
           </>
         )
       }
     >
-      <Rise key={done ? 'done' : speaker}>
-        <Paper tab={done ? 'Next' : 'On the record'} tilt={-0.8} style={styles.spotlight}>
+      <Pop key={done ? 'done' : speaker}>
+        <Card
+          color={done ? colors.yellow : colorOf(speaker)}
+          tilt={done ? 1 : -1}
+          style={styles.spotlight}
+          badge={done ? 'Discuss' : `${turn + 1} of ${speakers.length}`}
+          badgeColor={colors.white}
+        >
           {done ? (
             <>
-              <Text style={styles.big}>Talk it out.</Text>
-              <Type style={styles.center}>
-                Who sounded off? Who hesitated? When you&apos;re ready, agree on one suspect to eliminate.
-              </Type>
+              <Text style={styles.emoji}>🗣️</Text>
+              <Text style={[styles.big, { color: colors.ink }]}>Who&apos;s faking it?</Text>
+              <Body style={styles.center}>
+                Whose clue was a bit off? Who hesitated? Talk it through, then pick one player to vote out.
+              </Body>
             </>
           ) : (
             <>
-              <Label>
-                Suspect {turn + 1} of {speakers.length}
-              </Label>
-              <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>
+              <Label color={onColor(colorOf(speaker))}>give one word</Label>
+              <Text
+                style={[styles.big, { color: onColor(colorOf(speaker)) }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
                 {playerName(players, speaker)}
               </Text>
-              <Type style={styles.center}>
-                One word that hints at yours. Too obvious and the imposter learns it.
-              </Type>
+              <Body style={[styles.center, { color: onColor(colorOf(speaker)) }]}>
+                A clue for your word. Not too obvious, or the imposter will get it!
+              </Body>
             </>
           )}
-        </Paper>
-      </Rise>
+        </Card>
+      </Pop>
 
       <View style={styles.list}>
-        <Label color={colors.mutedOnDark}>Order of statements</Label>
         {game.order.map((id) => {
           const out = game.eliminated.includes(id);
           const i = speakers.indexOf(id);
           const active = !done && id === speaker;
           const given = !out && (done || i < turn);
           return (
-            <View key={id} style={[styles.row, active && styles.rowActive]}>
-              <Text style={[styles.idx, active && { color: colors.cream }]}>
-                {out ? '—' : String(i + 1).padStart(2, '0')}
-              </Text>
-              <Text
-                style={[
-                  styles.rowName,
-                  out && styles.struck,
-                  given && !active && { color: colors.mutedOnDark },
-                  active && { color: colors.cream },
-                ]}
-              >
+            <View
+              key={id}
+              style={[
+                styles.pill,
+                active && { backgroundColor: colorOf(id), transform: [{ scale: 1.05 }] },
+                given && !active && { backgroundColor: colors.white },
+                out && styles.pillOut,
+              ]}
+            >
+              <Text style={[styles.pillText, out && styles.pillTextOut]}>
+                {given && !active ? '✓ ' : ''}
                 {playerName(players, id)}
+                {out ? ' 👋' : ''}
               </Text>
-              {out ? (
-                <Text style={styles.outTag}>ELIMINATED</Text>
-              ) : given ? (
-                <Text style={styles.check}>✓</Text>
-              ) : null}
             </View>
           );
         })}
@@ -99,20 +99,25 @@ export default function Clues() {
 
 const styles = StyleSheet.create({
   spotlight: { alignItems: 'center', paddingVertical: space.xl },
-  big: { color: colors.ink, fontFamily: fonts.display, fontSize: size.hero + 4, textAlign: 'center' },
-  center: { textAlign: 'center', color: colors.muted },
-  list: { gap: 2 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingVertical: 10,
-    paddingHorizontal: space.md,
+  emoji: { fontSize: 44 },
+  big: {
+    color: colors.white,
+    fontFamily: fonts.display,
+    fontSize: size.hero,
+    lineHeight: size.hero + 12,
+    textAlign: 'center',
   },
-  rowActive: { backgroundColor: colors.imposter, borderRadius: 3, transform: [{ rotate: '-0.5deg' }] },
-  idx: { color: colors.mutedOnDark, fontFamily: fonts.type, width: 24 },
-  rowName: { color: colors.cream, fontFamily: fonts.type, fontSize: size.lead, flex: 1 },
-  struck: { textDecorationLine: 'line-through', color: '#5E5446' },
-  outTag: { color: '#5E5446', fontFamily: fonts.stencil, fontSize: 11, letterSpacing: 1.5 },
-  check: { color: colors.brass, fontSize: size.body },
+  center: { textAlign: 'center' },
+  list: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'center' },
+  pill: {
+    borderWidth: 2.5,
+    borderColor: colors.ink,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: 6,
+    backgroundColor: colors.paper,
+  },
+  pillOut: { borderStyle: 'dashed', backgroundColor: 'transparent', borderColor: colors.inkSoft },
+  pillText: { fontFamily: fonts.bodyBold, fontSize: size.body, color: colors.ink },
+  pillTextOut: { color: colors.inkSoft, textDecorationLine: 'line-through' },
 });

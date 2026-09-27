@@ -37,7 +37,7 @@ There are three roles, and nobody knows who is who:
 | **Undercover**              | The word's close cousin (Pizza → Calzone) | **No**. They think they're a villager  |
 | **Imposter**                | No word                                   | Yes                                    |
 
-1. **Deal:** pass the phone round. Each player **presses and holds** the file to lift the redaction bar and see their word. Letting go hides it again.
+1. **Deal:** pass the phone round. Each player **presses and holds** the sticker to peel it back and see their word. Letting go hides it again.
 2. **Clues:** everyone still in says one word, clockwise from a random starting player.
 3. **Accuse:** discuss, then agree out loud on **one** player to eliminate. The phone stays on the table, with no passing it round to vote. Their role is revealed.
 4. **Last words:** if the Imposter is eliminated, they type one guess at the villagers' word. If it's right, **the Imposter wins**. If the table decides a wrong answer is close enough, it can accept it.
@@ -71,12 +71,12 @@ There are three roles, and nobody knows who is who:
 ## Project structure
 
 ```
-src/app/              screens (Expo Router): index, setup, deal, clues, eliminate, verdict, case-closed, how-to-play
+src/app/              screens (Expo Router): index, setup, deal, clues, vote-out, reveal, results, how-to-play
 src/features/game/    engine.ts (pure rules, roles, win conditions, scoring; fully tested)
-                      store.ts (Zustand, persisted), SecretCard.tsx (hold-to-reveal)
+                      store.ts (Zustand, persisted), SecretCard.tsx (hold-to-peel)
 src/features/words/   word list (each word has a "close cousin"), quality tests
-src/components/ui.tsx design system: Desk, Paper, Stamp, Button, Tag, Stepper, ToggleRow, Rise
-src/theme/tokens.ts   "classified case file" palette, fonts, role inks
+src/components/ui.tsx design system: Table, Card, Sticker, Confetti, Button, Chip, Stepper, ToggleRow, Pop
+src/theme/tokens.ts   "Sticker Party" palette, fonts, role colors and emoji
 docs/decisions/       architecture decision records
 ```
 
@@ -88,7 +88,7 @@ Add rows to `src/features/words/words.ts` as `[word, cousin, 'e' | 'm' | 'h']`. 
 
 ### Design
 
-The theme is a noir case file: cream dossiers on a dark desk, with rubber-stamp role reveals. The fonts are Abril Fatface (headlines), Special Elite (typewriter body text) and Black Ops One (stencil buttons and stamps), all loaded through `@expo-google-fonts`. Colors and role inks live in `src/theme/tokens.ts`.
+The theme is "Sticker Party": die-cut stickers with thick ink outlines and hard drop shadows on a cream table covered in confetti. The fonts are Bagel Fat One (chunky display) and Fredoka (rounded body text), loaded through `@expo-google-fonts`. Each role has its own color and emoji (🏡 mint Villager, 🕶️ orange Undercover, 🎭 pink Imposter), and role reveals slap a sticker down with a confetti burst. Colors live in `src/theme/tokens.ts`.
 
 ## Configuration
 
