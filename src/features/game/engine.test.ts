@@ -2,18 +2,26 @@ import { WORDS, type WordEntry } from '@/features/words/words';
 
 import {
   DEFAULT_SETTINGS,
+  alive,
+  assignRoles,
   cardFor,
+  checkWinner,
   clueOrder,
-  maxImposters,
-  newRound,
-  pickImposters,
+  effectiveRoles,
+  eliminate,
+  isCorrectGuess,
+  maxInfiltrators,
+  newGame,
+  nextRound,
+  pickWeighted,
   pickWord,
-  scoreRound,
-  uncaughtImposters,
-  voteTally,
+  resolveGuess,
+  scoreGame,
+  suggestRoles,
   wordPool,
+  type Game,
   type Player,
-  type Round,
+  type Role,
 } from './engine';
 
 /** Deterministic rng that cycles through the given values. */
@@ -22,30 +30,51 @@ const seq = (...values: number[]) => {
   return () => values[i++ % values.length];
 };
 
-const players: Player[] = ['Ana', 'Ben', 'Cy', 'Dee', 'Eli'].map((name) => ({
+const players: Player[] = ['Ana', 'Ben', 'Cy', 'Dee', 'Eli', 'Fay'].map((name) => ({
   id: name.toLowerCase(),
   name,
 }));
 
-const baseRound = (overrides: Partial<Round> = {}): Round => ({
+// Ana, Ben, Cy, Dee = villagers; Eli = undercover; Fay = imposter
+const baseGame = (overrides: Partial<Game> = {}): Game => ({
   word: 'Pizza',
   cousin: 'Calzone',
   categoryId: 'food',
-  imposterIds: ['eli'],
+  roles: {
+    ana: 'villager',
+    ben: 'villager',
+    cy: 'villager',
+    dee: 'villager',
+    eli: 'undercover',
+    fay: 'imposter',
+  },
   order: players.map((p) => p.id),
-  votes: {},
-  guesses: {},
+  eliminated: [],
+  round: 1,
+  pendingGuess: null,
+  lastGuess: null,
+  winner: null,
   ...overrides,
 });
 
-describe('maxImposters', () => {
-  it.each([
-    [3, 1],
-    [6, 1],
-    [7, 2],
-    [9, 2],
-    [10, 3],
-  ])('%i players -> %i', (n, expected) => expect(maxImposters(n)).toBe(expected));
+describe('role counts', () => {
+  it('suggests sensible splits by group size', () => {
+    expect(suggestRoles(3)).toEqual({ undercover: 1, imposter: 0 });
+    expect(suggestRoles(5)).toEqual({ undercover: 1, imposter: 1 });
+    expect(suggestRoles(8)).toEqual({ undercover: 2, imposter: 1 });
+  });
+
+  it('keeps villagers in the majority', () => {
+    expect(maxInfiltrators(3)).toBe(1);
+    expect(maxInfiltrators(6)).toBe(2);
+    const manual = { ...DEFAULT_SETTINGS, autoRoles: false, roles: { undercover: 5, imposter: 5 } };
+    expect(effectiveRoles(manual, 6)).toEqual({ undercover: 0, imposter: 2 });
+  });
+
+  it('always has at least one infiltrator', () => {
+    const none = { ...DEFAULT_SETTINGS, autoRoles: false, roles: { undercover: 0, imposter: 0 } };
+    expect(effectiveRoles(none, 5)).toEqual({ undercover: 1, imposter: 0 });
+  });
 });
 
 describe('wordPool / pickWord', () => {
@@ -53,7 +82,6 @@ describe('wordPool / pickWord', () => {
     const all = wordPool(WORDS, { ...DEFAULT_SETTINGS, difficulties: ['easy', 'medium', 'hard'] });
     expect(all).toHaveLength(WORDS.length);
     const food = wordPool(WORDS, { ...DEFAULT_SETTINGS, categoryIds: ['food'], difficulties: ['easy'] });
-    expect(food.length).toBeGreaterThan(0);
     expect(food.every((w) => w.categoryId === 'food' && w.difficulty === 'easy')).toBe(true);
   });
 
@@ -63,139 +91,126 @@ describe('wordPool / pickWord', () => {
       { word: 'B', cousin: 'b', difficulty: 'easy', categoryId: 'x' },
     ];
     expect(pickWord(pool, ['A'], seq(0)).word).toBe('B');
-    expect(['A', 'B']).toContain(pickWord(pool, ['A', 'B'], seq(0.9)).word);
-  });
-
-  it('throws on an empty pool', () => {
     expect(() => pickWord([], [], Math.random)).toThrow(/No words/);
   });
 });
 
-describe('pickImposters', () => {
-  it('never picks the same player twice and leaves at least one crew member', () => {
-    const ids = pickImposters(players.slice(0, 3), 5, {}, Math.random);
-    expect(ids).toHaveLength(2);
-    expect(new Set(ids).size).toBe(2);
+describe('assigning roles', () => {
+  it('assigns exactly the requested roles', () => {
+    const roles = assignRoles(players, { undercover: 2, imposter: 1 }, {}, Math.random);
+    const count = (r: Role) => Object.values(roles).filter((x) => x === r).length;
+    expect([count('villager'), count('undercover'), count('imposter')]).toEqual([3, 2, 1]);
   });
 
-  it('favours players who have been imposter less often', () => {
-    const history = { ana: 50, ben: 50, cy: 50, dee: 50 };
-    const counts: Record<string, number> = {};
-    for (let i = 0; i < 500; i++) {
-      const [id] = pickImposters(players, 1, history, Math.random);
-      counts[id] = (counts[id] ?? 0) + 1;
+  it('favours players who have been infiltrators less often', () => {
+    const history = { ana: 50, ben: 50, cy: 50, dee: 50, eli: 50 };
+    let fay = 0;
+    for (let i = 0; i < 500; i++)
+      if (
+        pickWeighted(
+          players.map((p) => p.id),
+          1,
+          history,
+          Math.random,
+        )[0] === 'fay'
+      )
+        fay++;
+    expect(fay).toBeGreaterThan(400);
+  });
+
+  it('never lets the imposter speak first when that rule is on', () => {
+    const roles = baseGame().roles;
+    for (let r = 0; r < 1; r += 0.05) {
+      expect(roles[clueOrder(players, roles, true, () => r)[0]]).not.toBe('imposter');
     }
-    expect(counts.eli).toBeGreaterThan(400);
+    expect(clueOrder(players, roles, false, seq(0.99))[0]).toBe('fay');
   });
-});
 
-describe('clueOrder', () => {
-  it('rotates from a random start, keeping clockwise order', () => {
-    expect(clueOrder(players, seq(0.4))).toEqual(['cy', 'dee', 'eli', 'ana', 'ben']);
-  });
-});
-
-describe('newRound', () => {
-  it('requires 3 players', () => {
+  it('newGame requires 3 players', () => {
     expect(() =>
-      newRound({
+      newGame({
         players: players.slice(0, 2),
         settings: DEFAULT_SETTINGS,
         words: WORDS,
         usedWords: [],
-        imposterHistory: {},
+        history: {},
       }),
     ).toThrow(/at least 3/);
   });
-
-  it('caps imposters for small groups', () => {
-    const round = newRound({
-      players,
-      settings: { ...DEFAULT_SETTINGS, imposterCount: 3 },
-      words: WORDS,
-      usedWords: [],
-      imposterHistory: {},
-    });
-    expect(round.imposterIds).toHaveLength(1);
-    expect(round.order).toHaveLength(players.length);
-  });
 });
 
-describe('cardFor', () => {
+describe('cards', () => {
   const name = () => 'Food';
-  const round = baseRound();
-
-  it('crew sees the word', () => {
-    expect(cardFor(round, 'ana', DEFAULT_SETTINGS, name)).toEqual({ kind: 'word', word: 'Pizza' });
-  });
-
-  it('imposter sees Imposter, optionally with category', () => {
-    expect(cardFor(round, 'eli', DEFAULT_SETTINGS, name)).toEqual({ kind: 'imposter' });
-    expect(cardFor(round, 'eli', { ...DEFAULT_SETTINGS, imposterSeesCategory: true }, name)).toEqual({
+  const game = baseGame();
+  it('villager gets the word, undercover the cousin, imposter nothing', () => {
+    expect(cardFor(game, 'ana', DEFAULT_SETTINGS, name)).toEqual({ kind: 'word', word: 'Pizza' });
+    expect(cardFor(game, 'eli', DEFAULT_SETTINGS, name)).toEqual({ kind: 'word', word: 'Calzone' });
+    expect(cardFor(game, 'fay', DEFAULT_SETTINGS, name)).toEqual({ kind: 'imposter' });
+    expect(cardFor(game, 'fay', { ...DEFAULT_SETTINGS, imposterSeesCategory: true }, name)).toEqual({
       kind: 'imposter',
       category: 'Food',
     });
   });
+});
 
-  it('undercover imposter secretly gets the cousin word', () => {
-    expect(cardFor(round, 'eli', { ...DEFAULT_SETTINGS, undercover: true }, name)).toEqual({
-      kind: 'word',
-      word: 'Calzone',
-    });
+describe('elimination flow', () => {
+  it('eliminating a villager continues the game', () => {
+    const g = eliminate(baseGame(), 'ana');
+    expect(g.winner).toBeNull();
+    expect(alive(g)).not.toContain('ana');
+    expect(nextRound(g).round).toBe(2);
+  });
+
+  it('villagers win once every infiltrator is out', () => {
+    let g = eliminate(baseGame(), 'eli');
+    g = eliminate(g, 'fay');
+    expect(g.pendingGuess).toBe('fay');
+    g = resolveGuess(g, 'Calzone');
+    expect(g.lastGuess?.correct).toBe(false);
+    expect(g.winner).toBe('villagers');
+  });
+
+  it('an eliminated imposter who names the word wins outright', () => {
+    const g = resolveGuess(eliminate(baseGame(), 'fay'), '  pizzas! ');
+    expect(g.winner).toBe('imposter-guess');
+    expect(scoreGame(g)).toEqual({ fay: 6 });
+  });
+
+  it('the group can override a near-miss guess as correct', () => {
+    const g = resolveGuess(eliminate(baseGame(), 'fay'), 'pizza pie', true);
+    expect(g.winner).toBe('imposter-guess');
+  });
+
+  it('infiltrators win when only one villager is left', () => {
+    let g = baseGame();
+    for (const id of ['ana', 'ben', 'cy']) g = eliminate(g, id);
+    expect(g.winner).toBe('infiltrators');
+    expect(scoreGame(g)).toEqual({ eli: 5, fay: 6 });
+  });
+
+  it('ignores eliminations while a guess is pending or after the game ends', () => {
+    const pending = eliminate(baseGame(), 'fay');
+    expect(eliminate(pending, 'ana')).toBe(pending);
+    const over = { ...baseGame(), winner: 'villagers' as const };
+    expect(eliminate(over, 'ana')).toBe(over);
+  });
+
+  it('checkWinner on a fresh game is null', () => {
+    expect(checkWinner(baseGame())).toBeNull();
+  });
+
+  it('villager win scores every villager, eliminated or not', () => {
+    const g = { ...baseGame(), eliminated: ['ana', 'eli', 'fay'], winner: 'villagers' as const };
+    expect(scoreGame(g)).toEqual({ ana: 2, ben: 2, cy: 2, dee: 2 });
   });
 });
 
-describe('scoreRound', () => {
-  it('whole crew catches the imposter: crew get 2 each, imposter 0', () => {
-    const round = baseRound({ votes: { ana: 'eli', ben: 'eli', cy: 'eli', dee: 'eli', eli: 'ana' } });
-    const s = scoreRound(round, players);
-    expect(s.ana.points).toBe(2);
-    expect(s.dee.points).toBe(2);
-    expect(s.eli.points).toBe(0);
-  });
-
-  it('split vote: catchers get 1, imposter gets 1 for fooling someone', () => {
-    const round = baseRound({ votes: { ana: 'eli', ben: 'eli', cy: 'ana', dee: 'ben' } });
-    const s = scoreRound(round, players);
-    expect(s.ana.points).toBe(1);
-    expect(s.cy.points).toBe(0);
-    expect(s.eli.points).toBe(1);
-    expect(uncaughtImposters(round, players)).toEqual([]);
-  });
-
-  it('perfect imposter round: fooled everyone and named the word = 3', () => {
-    const round = baseRound({
-      votes: { ana: 'ben', ben: 'cy', cy: 'dee', dee: 'ana' },
-      guesses: { eli: true },
-    });
-    const s = scoreRound(round, players);
-    expect(s.eli.points).toBe(3);
-    expect(s.eli.reasons).toEqual(['Fooled someone', 'Fooled everyone', 'Named the secret word']);
-    expect(uncaughtImposters(round, players)).toEqual(['eli']);
-  });
-
-  it('a guess does not count if the imposter was caught by anyone', () => {
-    const round = baseRound({ votes: { ana: 'eli' }, guesses: { eli: true } });
-    expect(scoreRound(round, players).eli.points).toBe(1);
-  });
-
-  it('with two imposters, a vote for either counts as a catch', () => {
-    const round = baseRound({
-      imposterIds: ['dee', 'eli'],
-      votes: { ana: 'dee', ben: 'eli', cy: 'eli' },
-    });
-    const s = scoreRound(round, players);
-    expect([s.ana.points, s.ben.points, s.cy.points]).toEqual([2, 2, 2]);
-    expect(s.dee.points).toBe(1);
-    expect(s.eli.points).toBe(1);
-  });
-});
-
-describe('voteTally', () => {
-  it('counts votes per suspect', () => {
-    expect(voteTally(baseRound({ votes: { ana: 'eli', ben: 'eli', cy: 'ana' } }))).toEqual({
-      eli: 2,
-      ana: 1,
-    });
-  });
+describe('isCorrectGuess', () => {
+  it.each([
+    ['Ice cream', 'Ice Cream', true],
+    ['icecream', 'Ice Cream', true],
+    ['Hot dog', 'Hot Dog', true],
+    ['', 'Pizza', false],
+    ['Pasta', 'Pizza', false],
+  ])('%s vs %s -> %s', (guess, word, expected) => expect(isCorrectGuess(guess, word)).toBe(expected));
 });

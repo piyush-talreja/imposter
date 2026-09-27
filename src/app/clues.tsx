@@ -2,67 +2,93 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, Card, Label, Screen } from '@/components/ui';
+import { Button, Label, Paper, Rise, Screen, Type } from '@/components/ui';
+import { alive } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
-import { colors, font, radius, space } from '@/theme/tokens';
+import { colors, fonts, size, space } from '@/theme/tokens';
 
 export default function Clues() {
-  const { round, players, settings } = useGame();
+  const { game, players } = useGame();
   const [turn, setTurn] = useState(0);
 
-  if (!round) return <Redirect href="/" />;
-  const perPass = round.order.length;
-  const pass = Math.floor(turn / perPass) + 1;
-  const speaker = round.order[turn % perPass];
-  const done = pass > settings.passes;
+  if (!game) return <Redirect href="/" />;
+  const speakers = alive(game);
+  const done = turn >= speakers.length;
+  const speaker = speakers[Math.min(turn, speakers.length - 1)];
 
   return (
     <Screen
-      title={done ? 'Clues done' : `Pass ${pass} of ${settings.passes}`}
-      backLabel="‹ Quit"
+      kicker={`ROUND ${game.round} · STATEMENTS`}
+      title={done ? 'All statements taken' : 'Give one clue'}
+      backLabel="Quit"
       onBack={() => router.dismissTo('/')}
       footer={
-        <>
-          {done ? (
-            <Button label="Time to vote" onPress={() => router.replace('/vote')} />
-          ) : (
-            <Button label="Next player" onPress={() => setTurn(turn + 1)} />
-          )}
-          {!done ? (
-            <Button label="Skip to vote" variant="ghost" onPress={() => router.replace('/vote')} />
-          ) : null}
-        </>
-      }
-    >
-      <Card style={styles.spotlight}>
-        {done ? (
-          <>
-            <Text style={styles.emoji}>🗳️</Text>
-            <Body style={styles.center}>
-              Discuss who seems suspicious, then vote. Everyone votes for themselves, not as a team.
-            </Body>
-          </>
+        done ? (
+          <Button label="Discuss & accuse" onPress={() => router.replace('/eliminate')} />
         ) : (
           <>
-            <Label>Give a one-word clue</Label>
-            <Text style={styles.speaker}>{playerName(players, speaker)}</Text>
-            <Body style={styles.muted}>Don&apos;t say the word. Don&apos;t be too obvious either.</Body>
+            <Button label="Next suspect" ink={colors.ink} onPress={() => setTurn(turn + 1)} />
+            <Button
+              label="Skip to the accusation"
+              variant="ghost"
+              onPress={() => router.replace('/eliminate')}
+            />
           </>
-        )}
-      </Card>
+        )
+      }
+    >
+      <Rise key={done ? 'done' : speaker}>
+        <Paper tab={done ? 'Next' : 'On the record'} tilt={-0.8} style={styles.spotlight}>
+          {done ? (
+            <>
+              <Text style={styles.big}>Talk it out.</Text>
+              <Type style={styles.center}>
+                Who sounded off? Who hesitated? When you&apos;re ready, agree on one suspect to eliminate.
+              </Type>
+            </>
+          ) : (
+            <>
+              <Label>
+                Suspect {turn + 1} of {speakers.length}
+              </Label>
+              <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>
+                {playerName(players, speaker)}
+              </Text>
+              <Type style={styles.center}>
+                One word that hints at yours. Too obvious and the imposter learns it.
+              </Type>
+            </>
+          )}
+        </Paper>
+      </Rise>
 
-      <View style={styles.order}>
-        <Label>Order</Label>
-        {round.order.map((id, i) => {
+      <View style={styles.list}>
+        <Label color={colors.mutedOnDark}>Order of statements</Label>
+        {game.order.map((id) => {
+          const out = game.eliminated.includes(id);
+          const i = speakers.indexOf(id);
           const active = !done && id === speaker;
-          const given = done || i < turn % perPass;
+          const given = !out && (done || i < turn);
           return (
-            <View key={id} style={[styles.orderRow, active && styles.orderActive]}>
-              <Text style={[styles.orderIndex, active && { color: colors.text }]}>{i + 1}</Text>
-              <Text style={[styles.orderName, given && !active && { color: colors.muted }]}>
+            <View key={id} style={[styles.row, active && styles.rowActive]}>
+              <Text style={[styles.idx, active && { color: colors.cream }]}>
+                {out ? '—' : String(i + 1).padStart(2, '0')}
+              </Text>
+              <Text
+                style={[
+                  styles.rowName,
+                  out && styles.struck,
+                  given && !active && { color: colors.mutedOnDark },
+                  active && { color: colors.cream },
+                ]}
+              >
                 {playerName(players, id)}
               </Text>
-              {given && !active ? <Text style={styles.check}>✓</Text> : null}
+              {out ? (
+                <Text style={styles.outTag}>ELIMINATED</Text>
+              ) : given ? (
+                <Text style={styles.check}>✓</Text>
+              ) : null}
             </View>
           );
         })}
@@ -73,21 +99,20 @@ export default function Clues() {
 
 const styles = StyleSheet.create({
   spotlight: { alignItems: 'center', paddingVertical: space.xl },
-  emoji: { fontSize: 56 },
-  center: { textAlign: 'center' },
-  muted: { color: colors.muted, textAlign: 'center' },
-  speaker: { color: colors.text, fontSize: font.hero + 4, fontWeight: '900', textAlign: 'center' },
-  order: { gap: space.sm },
-  orderRow: {
+  big: { color: colors.ink, fontFamily: fonts.display, fontSize: size.hero + 4, textAlign: 'center' },
+  center: { textAlign: 'center', color: colors.muted },
+  list: { gap: 2 },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
-    paddingVertical: space.sm + 2,
+    paddingVertical: 10,
     paddingHorizontal: space.md,
-    borderRadius: radius.md,
   },
-  orderActive: { backgroundColor: colors.primary },
-  orderIndex: { color: colors.muted, width: 20, fontWeight: '700' },
-  orderName: { color: colors.text, fontSize: font.body, fontWeight: '600', flex: 1 },
-  check: { color: colors.success, fontWeight: '800' },
+  rowActive: { backgroundColor: colors.imposter, borderRadius: 3, transform: [{ rotate: '-0.5deg' }] },
+  idx: { color: colors.mutedOnDark, fontFamily: fonts.type, width: 24 },
+  rowName: { color: colors.cream, fontFamily: fonts.type, fontSize: size.lead, flex: 1 },
+  struck: { textDecorationLine: 'line-through', color: '#5E5446' },
+  outTag: { color: '#5E5446', fontFamily: fonts.stencil, fontSize: 11, letterSpacing: 1.5 },
+  check: { color: colors.brass, fontSize: size.body },
 });

@@ -6,11 +6,13 @@ import { WORDS } from '@/features/words/words';
 
 import {
   DEFAULT_SETTINGS,
-  newRound,
-  scoreRound,
+  eliminate,
+  newGame,
+  nextRound,
+  resolveGuess,
+  scoreGame,
+  type Game,
   type Player,
-  type Round,
-  type RoundScore,
   type Settings,
 } from './engine';
 
@@ -21,94 +23,114 @@ type GameState = {
   players: Player[];
   settings: Settings;
   scores: Record<string, number>;
-  imposterHistory: Record<string, number>;
+  /** Times each player has been an infiltrator, for fair rotation. */
+  history: Record<string, number>;
   usedWords: string[];
-  roundsPlayed: number;
-  round: Round | null;
-  lastRoundScore: RoundScore | null;
+  game: Game | null;
+  /** Everyone has seen their card for the current game. */
+  dealt: boolean;
+  /** Points awarded by the most recently finished game (null until it's tallied). */
+  lastPoints: Record<string, number> | null;
 
   addPlayer: (name: string) => void;
   removePlayer: (id: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
-  startRound: () => void;
-  castVote: (voterId: string, suspectId: string) => void;
-  setGuess: (imposterId: string, guessed: boolean) => void;
-  finishRound: () => void;
-  endGame: () => void;
+  startGame: () => void;
+  markDealt: () => void;
+  eliminatePlayer: (id: string) => void;
+  guess: (text: string, overrideCorrect?: boolean) => void;
+  continueRound: () => void;
+  resetScores: () => void;
 };
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 export const useGame = create<GameState>()(
   persist(
-    (set, get) => ({
-      players: [],
-      settings: DEFAULT_SETTINGS,
-      scores: {},
-      imposterHistory: {},
-      usedWords: [],
-      roundsPlayed: 0,
-      round: null,
-      lastRoundScore: null,
-
-      addPlayer: (name) => {
-        const trimmed = name.trim();
-        if (!trimmed) return;
-        set((s) => ({ players: [...s.players, { id: newId(), name: trimmed }] }));
-      },
-
-      removePlayer: (id) =>
-        set((s) => {
-          const { [id]: _score, ...scores } = s.scores;
-          const { [id]: _history, ...imposterHistory } = s.imposterHistory;
-          return { players: s.players.filter((p) => p.id !== id), scores, imposterHistory };
-        }),
-
-      updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
-
-      startRound: () => {
-        const { players, settings, usedWords, imposterHistory } = get();
-        const round = newRound({ players, settings, words: WORDS, usedWords, imposterHistory });
-        set({ round, lastRoundScore: null });
-      },
-
-      castVote: (voterId, suspectId) =>
-        set((s) =>
-          s.round ? { round: { ...s.round, votes: { ...s.round.votes, [voterId]: suspectId } } } : {},
-        ),
-
-      setGuess: (imposterId, guessed) =>
-        set((s) =>
-          s.round ? { round: { ...s.round, guesses: { ...s.round.guesses, [imposterId]: guessed } } } : {},
-        ),
-
-      finishRound: () => {
-        const { round, players, settings, scores, imposterHistory, usedWords, roundsPlayed } = get();
-        if (!round) return;
-        const roundScore = scoreRound(round, players);
+    (set, get) => {
+      /** Once a game has a winner, bank its points exactly once. */
+      const settle = (game: Game) => {
+        if (!game.winner) return set({ game });
+        const { scores, settings, history, usedWords } = get();
+        const points = scoreGame(game);
         const nextScores = { ...scores };
-        if (settings.scoring) {
-          for (const [id, { points }] of Object.entries(roundScore)) {
-            nextScores[id] = (nextScores[id] ?? 0) + points;
-          }
+        if (settings.scoring)
+          for (const [id, p] of Object.entries(points)) nextScores[id] = (nextScores[id] ?? 0) + p;
+        const nextHistory = { ...history };
+        for (const [id, role] of Object.entries(game.roles)) {
+          if (role !== 'villager') nextHistory[id] = (nextHistory[id] ?? 0) + 1;
         }
-        const nextHistory = { ...imposterHistory };
-        for (const id of round.imposterIds) nextHistory[id] = (nextHistory[id] ?? 0) + 1;
         set({
+          game,
           scores: nextScores,
-          imposterHistory: nextHistory,
-          usedWords: [round.word, ...usedWords].slice(0, USED_WORD_MEMORY),
-          roundsPlayed: roundsPlayed + 1,
-          lastRoundScore: roundScore,
+          history: nextHistory,
+          usedWords: [game.word, ...usedWords].slice(0, USED_WORD_MEMORY),
+          lastPoints: points,
         });
-      },
+      };
 
-      endGame: () =>
-        set({ round: null, scores: {}, imposterHistory: {}, roundsPlayed: 0, lastRoundScore: null }),
-    }),
+      return {
+        players: [],
+        settings: DEFAULT_SETTINGS,
+        scores: {},
+        history: {},
+        usedWords: [],
+        game: null,
+        dealt: false,
+        lastPoints: null,
+
+        addPlayer: (name) => {
+          const trimmed = name.trim();
+          if (!trimmed) return;
+          set((s) => ({ players: [...s.players, { id: newId(), name: trimmed }] }));
+        },
+
+        removePlayer: (id) =>
+          set((s) => {
+            const { [id]: _score, ...scores } = s.scores;
+            const { [id]: _history, ...history } = s.history;
+            return { players: s.players.filter((p) => p.id !== id), scores, history };
+          }),
+
+        updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+
+        startGame: () => {
+          const { players, settings, usedWords, history } = get();
+          set({
+            game: newGame({ players, settings, words: WORDS, usedWords, history }),
+            dealt: false,
+            lastPoints: null,
+          });
+        },
+
+        markDealt: () => set({ dealt: true }),
+
+        eliminatePlayer: (id) => {
+          const { game } = get();
+          if (game) settle(eliminate(game, id));
+        },
+
+        guess: (text, overrideCorrect) => {
+          const { game } = get();
+          if (game) settle(resolveGuess(game, text, overrideCorrect));
+        },
+
+        continueRound: () => {
+          const { game } = get();
+          if (game) set({ game: nextRound(game) });
+        },
+
+        resetScores: () => set({ scores: {}, history: {}, lastPoints: null }),
+      };
+    },
     {
       name: 'imposter-game',
-      version: 1,
+      // v2: elimination rules with villager / undercover / imposter roles.
+      version: 2,
+      migrate: (persisted) => {
+        const old = persisted as { players?: Player[] };
+        return { players: old.players ?? [], settings: DEFAULT_SETTINGS } as Partial<GameState>;
+      },
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

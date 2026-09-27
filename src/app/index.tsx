@@ -1,52 +1,95 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, Screen } from '@/components/ui';
+import { Button, Label, Paper, Rise, Screen, Stamp, Type } from '@/components/ui';
 import { useGame } from '@/features/game/store';
-import { colors, font, space } from '@/theme/tokens';
+import { ROLE_META, colors, fonts, size, space } from '@/theme/tokens';
 
 export default function Home() {
-  const round = useGame((s) => s.round);
-  const lastRoundScore = useGame((s) => s.lastRoundScore);
-  // A round is resumable until its scores have been tallied.
-  const inProgress = !!round && !lastRoundScore;
+  const { game, dealt } = useGame();
+  const resumeTo: Href | null = !game
+    ? null
+    : game.winner
+      ? null
+      : game.pendingGuess
+        ? '/verdict'
+        : dealt
+          ? '/clues'
+          : '/deal';
 
   return (
     <Screen
       onBack={null}
-      scroll={false}
       footer={
         <>
-          {inProgress ? <Button label="Resume round" onPress={() => router.push('/deal')} /> : null}
+          {resumeTo ? <Button label="Resume case" onPress={() => router.push(resumeTo)} /> : null}
           <Button
-            label={inProgress ? 'New game' : 'Play'}
-            variant={inProgress ? 'secondary' : 'primary'}
+            label={resumeTo ? 'Open a new case' : 'Open a case'}
+            variant={resumeTo ? 'paper' : 'stamp'}
             onPress={() => router.push('/setup')}
           />
           <Button label="How to play" variant="ghost" onPress={() => router.push('/how-to-play')} />
         </>
       }
     >
-      <View style={styles.hero}>
-        <Text style={styles.emoji} accessibilityElementsHidden>
-          🕵️
-        </Text>
+      <Rise>
+        <Text style={styles.kicker}>CASE NO. 0427 · A PARTY GAME</Text>
         <Text style={styles.title} accessibilityRole="header">
           Imposter
         </Text>
-        <Body style={styles.tagline}>
-          Everyone gets the secret word, except one. Give clues, bluff, and vote out the imposter.
-        </Body>
-        <Text style={styles.meta}>3+ players · one phone · 10–20 min</Text>
-      </View>
+        <Type style={styles.tagline}>
+          One word. One phone. Somebody at this table is lying, and somebody doesn&apos;t even know they are.
+        </Type>
+      </Rise>
+
+      <Rise delay={180}>
+        <Paper tab="The suspects" tilt={1.2}>
+          {(['villager', 'undercover', 'imposter'] as const).map((role) => (
+            <View key={role} style={styles.role}>
+              <View style={[styles.dot, { backgroundColor: ROLE_META[role].ink }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.roleName, { color: ROLE_META[role].ink }]}>{ROLE_META[role].label}</Text>
+                <Type style={styles.roleBlurb}>{ROLE_META[role].blurb}</Type>
+              </View>
+            </View>
+          ))}
+        </Paper>
+        <Stamp
+          text="Top secret"
+          ink={colors.imposter}
+          angle={7}
+          delay={650}
+          fontSize={16}
+          style={styles.stamp}
+        />
+      </Rise>
+
+      <Rise delay={320}>
+        <Label color={colors.mutedOnDark}>3–20 players · pass & play · works offline</Label>
+      </Rise>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.md },
-  emoji: { fontSize: 88 },
-  title: { color: colors.text, fontSize: font.giant, fontWeight: '900', letterSpacing: -1 },
-  tagline: { textAlign: 'center', color: colors.muted, maxWidth: 340 },
-  meta: { color: colors.primary, fontSize: font.small, fontWeight: '700', marginTop: space.sm },
+  kicker: {
+    color: colors.brass,
+    fontFamily: fonts.type,
+    fontSize: size.small,
+    letterSpacing: 3,
+    marginTop: space.md,
+  },
+  title: {
+    color: colors.cream,
+    fontFamily: fonts.display,
+    fontSize: 76,
+    lineHeight: 88,
+    marginTop: space.xs,
+  },
+  tagline: { color: colors.mutedOnDark, fontSize: size.body + 1, lineHeight: 25, maxWidth: 380 },
+  role: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
+  dot: { width: 12, height: 12, borderRadius: 6, marginTop: 8 },
+  roleName: { fontFamily: fonts.stencil, fontSize: size.lead, letterSpacing: 1.5 },
+  roleBlurb: { fontSize: size.small + 1, color: colors.muted },
+  stamp: { position: 'absolute', right: 6, top: -4 },
 });

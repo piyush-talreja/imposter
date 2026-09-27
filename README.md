@@ -20,60 +20,63 @@ Then scan the QR code in the terminal: use Expo Go on Android, or the Camera app
 
 ## Run on each platform
 
-| Platform | Command | Notes |
-|---|---|---|
-| Phone (fastest) | `pnpm start` | Scan the QR code with Expo Go |
-| Web | `pnpm web` | Opens http://localhost:8081 |
-| iOS simulator | `pnpm ios` | macOS with Xcode only |
+| Platform         | Command        | Notes                                         |
+| ---------------- | -------------- | --------------------------------------------- |
+| Phone (fastest)  | `pnpm start`   | Scan the QR code with Expo Go                 |
+| Web              | `pnpm web`     | Opens http://localhost:8081                   |
+| iOS simulator    | `pnpm ios`     | macOS with Xcode only                         |
 | Android emulator | `pnpm android` | Needs Android Studio with an emulator running |
 
 ## How the game works
 
-1. **Setup:** add players in seating order, then pick categories, difficulty and rules.
-2. **Deal:** pass the phone round. Each player taps *Show my word*, reads it, then taps *Hide word & pass*. The imposter sees "Imposter" instead of the word.
-3. **Clues:** the app picks a random starting player and goes clockwise, for 1–5 passes round the table.
-4. **Vote:** a secret ballot. The phone goes round once more.
-5. **Reveal:** see the vote tally, then the imposter, then the word, then the scoreboard.
+There are three roles, and nobody knows who is who:
+
+| Role                        | Gets                                      | Knows their role?                      |
+| --------------------------- | ----------------------------------------- | -------------------------------------- |
+| **Villager** (most players) | The secret word                           | No, but they know they have _the_ word |
+| **Undercover**              | The word's close cousin (Pizza → Calzone) | **No**. They think they're a villager  |
+| **Imposter**                | No word                                   | Yes                                    |
+
+1. **Deal:** pass the phone round. Each player **presses and holds** the file to lift the redaction bar and see their word. Letting go hides it again.
+2. **Clues:** everyone still in says one word, clockwise from a random starting player.
+3. **Accuse:** discuss, then agree out loud on **one** player to eliminate. The phone stays on the table, with no passing it round to vote. Their role is revealed.
+4. **Last words:** if the Imposter is eliminated, they type one guess at the villagers' word. If it's right, **the Imposter wins**. If the table decides a wrong answer is close enough, it can accept it.
+5. Repeat until someone wins:
+   - **Villagers win** when every Undercover and Imposter is out.
+   - **Infiltrators win** (Undercover and Imposter) when only one Villager is left.
 
 ### Options
 
-| Option | What it does |
-|---|---|
-| Categories | 12 categories, including Food, Animals, Places, Jobs and Fun & Fantasy, or 🎲 All |
-| Difficulty / Kids mode | Easy, medium, hard. Kids mode uses easy words only |
-| Imposters | 1, or up to 2 at 7+ players and 3 at 10+ |
-| Clue passes | 1–5 times round the table |
-| Imposter sees category | Gives the imposter a fighting chance |
-| Undercover mode | The imposter secretly gets a *similar* word (Pizza → Calzone) and doesn't know they're the imposter |
-| Keep score | Per-player points (below) |
-
-### Scoring
-
-Each round:
-
-- **Crew:** +1 for voting for an imposter, and +1 bonus each if the *whole* crew caught them.
-- **Imposter:** +1 if anyone was fooled, +1 more if nobody voted for them, and a further +1 if they were uncaught *and* could name the word.
+| Option                    | What it does                                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Roles                     | A suggested split for the group size, or set the Undercover and Imposter counts yourself. Villagers always start in the majority            |
+| Case files                | 12 categories, or All                                                                                                                       |
+| Difficulty / Kids         | Easy, medium, hard. Kids uses easy words only                                                                                               |
+| Imposter sees category    | Gives the player with no word something to go on                                                                                            |
+| Imposter never goes first | The first clue always comes from someone who has a word                                                                                     |
+| Keep score                | Everyone on the winning side scores: Villager 2, Undercover 5, Imposter 6. A lone Imposter win (a correct guess) scores 6 for that Imposter |
 
 ## Scripts
 
-| Script | What it does |
-|---|---|
-| `pnpm start` | Expo dev server |
-| `pnpm web` / `ios` / `android` | Start on a specific platform |
-| `pnpm test` | Unit tests (Jest) |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm lint` | ESLint (`expo lint`) |
-| `pnpm format` | Prettier |
-| `pnpm export:web` | Static web build into `dist/` |
+| Script                         | What it does                  |
+| ------------------------------ | ----------------------------- |
+| `pnpm start`                   | Expo dev server               |
+| `pnpm web` / `ios` / `android` | Start on a specific platform  |
+| `pnpm test`                    | Unit tests (Jest)             |
+| `pnpm typecheck`               | `tsc --noEmit`                |
+| `pnpm lint`                    | ESLint (`expo lint`)          |
+| `pnpm format`                  | Prettier                      |
+| `pnpm export:web`              | Static web build into `dist/` |
 
 ## Project structure
 
 ```
-src/app/              screens (Expo Router): index, setup, deal, clues, vote, reveal, how-to-play
-src/features/game/    engine.ts (pure rules + scoring, fully tested), store.ts (Zustand, persisted)
+src/app/              screens (Expo Router): index, setup, deal, clues, eliminate, verdict, case-closed, how-to-play
+src/features/game/    engine.ts (pure rules, roles, win conditions, scoring; fully tested)
+                      store.ts (Zustand, persisted), SecretCard.tsx (hold-to-reveal)
 src/features/words/   word list (each word has a "close cousin"), quality tests
-src/components/ui.tsx shared UI primitives (Screen, Button, Chip, Stepper, ToggleRow, Card)
-src/theme/tokens.ts   colors, spacing, type scale
+src/components/ui.tsx design system: Desk, Paper, Stamp, Button, Tag, Stepper, ToggleRow, Rise
+src/theme/tokens.ts   "classified case file" palette, fonts, role inks
 docs/decisions/       architecture decision records
 ```
 
@@ -81,7 +84,11 @@ The game rules live in `src/features/game/engine.ts` and have no React dependenc
 
 ### Adding words
 
-Add rows to `src/features/words/words.ts` as `[word, cousin, 'e' | 'm' | 'h']`. A good word can be hinted at in about eight different ways, and has a close "cousin" the imposter could plausibly guess. `pnpm test` catches duplicates and missing cousins.
+Add rows to `src/features/words/words.ts` as `[word, cousin, 'e' | 'm' | 'h']`. A good word can be hinted at in about eight different ways. Its cousin is what the Undercover gets, so it must be close enough to survive a round or two of clues. `pnpm test` catches duplicates and missing cousins.
+
+### Design
+
+The theme is a noir case file: cream dossiers on a dark desk, with rubber-stamp role reveals. The fonts are Abril Fatface (headlines), Special Elite (typewriter body text) and Black Ops One (stencil buttons and stamps), all loaded through `@expo-google-fonts`. Colors and role inks live in `src/theme/tokens.ts`.
 
 ## Configuration
 
@@ -94,11 +101,11 @@ No env vars or backend are needed. Everything runs on the device, and players, s
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| Stale bundle or odd Metro errors | `pnpm start --clear` |
-| Package version warnings | `pnpm expo install --check` |
-| Phone can't reach the dev server | `pnpm start --tunnel` |
+| Problem                                    | Fix                                                                                                                                                               |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stale bundle or odd Metro errors           | `pnpm start --clear`                                                                                                                                              |
+| Package version warnings                   | `pnpm expo install --check`                                                                                                                                       |
+| Phone can't reach the dev server           | `pnpm start --tunnel`                                                                                                                                             |
 | `401 Unauthorized` from a private registry | Your global `~/.npmrc` points at a private registry. This repo's `.npmrc` pins the public one; also run `export pnpm_config_registry=https://registry.npmjs.org/` |
 
 ## License
