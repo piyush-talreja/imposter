@@ -138,8 +138,8 @@ export const useGame = create<GameState>()(
     },
     {
       name: 'imposter-game',
-      // v4: two-stage scoring (team win, still-in bonus); games gained `survivors`.
-      version: 4,
+      // v5: simple one-point-per-win scoring.
+      version: 5,
       migrate: (persisted) => {
         const old = persisted as { players?: Player[] };
         return { players: old.players ?? [], settings: DEFAULT_SETTINGS } as Partial<GameState>;

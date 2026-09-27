@@ -20,7 +20,6 @@ function summary(game: Game): { text: string; points: number; color: string }[] 
   const caught = undercovers.filter((id) => game.eliminated.includes(id)).length;
   const lines: { text: string; points: number; color: string }[] = [
     { text: 'Imposter caught · everyone else', points: POINTS.imposterCaught, color: colors.cyan },
-    { text: 'Still in when the Imposter was caught', points: POINTS.stillIn, color: colors.cyan },
   ];
   if (caught > 0)
     lines.push({

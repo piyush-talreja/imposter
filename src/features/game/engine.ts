@@ -54,19 +54,17 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const MIN_PLAYERS = 3;
 
-// Stage 1 is the imposter against everyone else (villagers + undercover).
-// Stage 2, only once the imposter is caught, is villagers against the undercover.
+// A few simple wins, each worth a fixed amount. The whole winning side scores,
+// including players voted out earlier: being voted out isn't their mistake.
 export const POINTS = {
   /** Each imposter, when the imposters win. Nobody else scores. */
   imposterWins: 6,
-  /** Everyone on the team (villagers + undercover), in or out, when the imposter is caught. */
+  /** Everyone else (villagers + undercover), when the imposter is caught. */
   imposterCaught: 2,
-  /** Team players still in the game at the moment the imposter is caught. */
-  stillIn: 1,
   /** Every villager, for each undercover caught. */
-  undercoverCaught: 3,
+  undercoverCaught: 2,
   /** An undercover who is never caught. */
-  undercoverUndetected: 5,
+  undercoverUndetected: 4,
 } as const;
 
 export type Game = {
@@ -85,8 +83,6 @@ export type Game = {
   winner: Winner | null;
   /** The game has finished, bonus round included. */
   over: boolean;
-  /** Players still in at the moment the last imposter was caught. */
-  survivors: string[];
 };
 
 export type Card = { kind: 'word'; word: string } | { kind: 'imposter'; category?: string };
@@ -225,7 +221,6 @@ export function newGame(args: {
     lastGuess: null,
     winner: null,
     over: false,
-    survivors: [],
   };
 }
 
@@ -260,12 +255,10 @@ function settle(game: Game): Game {
   const imposters = countAlive(game, 'imposter');
   const undercovers = countAlive(game, 'undercover');
   const villagers = countAlive(game, 'villager');
-  let { winner, over, survivors } = game;
+  let { winner, over } = game;
   if (!winner) {
-    if (imposters === 0) {
-      winner = 'villagers';
-      survivors = alive(game);
-    } else if (villagers + undercovers <= imposters) {
+    if (imposters === 0) winner = 'villagers';
+    else if (villagers + undercovers <= imposters) {
       winner = 'imposters';
       over = true;
     }
@@ -273,7 +266,7 @@ function settle(game: Game): Game {
   // The bonus hunt ends once every undercover is caught, or there aren't enough
   // villagers left to keep hunting.
   if (winner === 'villagers' && (undercovers === 0 || villagers <= 1)) over = true;
-  return { ...game, winner, over, survivors };
+  return { ...game, winner, over };
 }
 
 export function eliminate(game: Game, playerId: string): Game {
@@ -314,7 +307,7 @@ export function scoreGame(game: Game): Record<string, ScoreLine[]> {
   const add = (id: string, points: number, reason: string) => (lines[id] ??= []).push({ points, reason });
   const ids = Object.keys(game.roles);
 
-  // Stage 1 lost: the imposters take it all.
+  // The imposter won: nobody else scores.
   if (game.winner === 'imposters') {
     for (const id of ids) if (game.roles[id] === 'imposter') add(id, POINTS.imposterWins, 'Imposter won');
     return lines;
@@ -324,10 +317,8 @@ export function scoreGame(game: Game): Record<string, ScoreLine[]> {
   for (const id of ids) {
     const role = game.roles[id];
     if (role === 'imposter') continue;
-    // Stage 1 won: the whole team shares it; staying in earns a little extra.
     add(id, POINTS.imposterCaught, 'Imposter caught');
-    if (game.survivors.includes(id)) add(id, POINTS.stillIn, 'Still in');
-    // Stage 2: villagers against the undercover.
+    // Bonus round: villagers against the undercover.
     if (role === 'villager' && caughtUndercovers > 0) {
       add(id, POINTS.undercoverCaught * caughtUndercovers, 'Undercover caught');
     }

@@ -47,10 +47,9 @@ const WIN: { role: Role; title: string; text: string }[] = [
 
 const SCORING: [string, number][] = [
   ['Imposter wins: the Imposter. Nobody else scores', POINTS.imposterWins],
-  ['Imposter caught: every Villager and Undercover, in or out', POINTS.imposterCaught],
-  ['Still in when the Imposter is caught', POINTS.stillIn],
-  ['Undercover caught: every Villager', POINTS.undercoverCaught],
-  ['Undercover never caught: the Undercover', POINTS.undercoverUndetected],
+  ['Imposter caught: everyone else', POINTS.imposterCaught],
+  ['Bonus round, Undercover caught: every Villager', POINTS.undercoverCaught],
+  ['Bonus round, Undercover gets away: the Undercover', POINTS.undercoverUndetected],
 ];
 
 export default function HowToPlay() {

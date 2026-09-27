@@ -13,7 +13,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Fixed
 
-- Scoring follows the two stages. **Imposter vs everyone else:** an Imposter win scores only for the Imposter (+6); an Imposter caught gives the whole team +2, in or out, plus +1 for players still in. **Villagers vs Undercover:** catching the Undercover gives every Villager +3; an Undercover never caught gets +5
+- Simpler scoring: Imposter wins +6 (nobody else scores); Imposter caught, everyone else +2; bonus round, Undercover caught, every Villager +2; Undercover gets away +4. The whole winning side scores, including players voted out earlier
 - The reveal sound played only on every other press: it now waits for the rewind to finish before replaying, and uses a small pool of players so rapid presses overlap
 - The word looked blurry while held (phones rasterise text that is being scaled or rotated)
 - Reveal sound lagged: sounds are preloaded at launch and the reveal sound now starts on its first sample
