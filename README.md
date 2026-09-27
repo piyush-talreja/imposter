@@ -122,6 +122,8 @@ pnpm web                         # or: pnpm export:web && node e2e/serve.mjs dis
 pnpm test:e2e:rooms              # 4 players in 4 browser sessions (needs the build served on :8765)
 pnpm test:online:game            # a whole 5-player game through the API
 pnpm test:e2e:game               # the same game in 5 browser sessions
+pnpm test:online:resilience      # timers, leaving mid-game, host handover (API, ~30 s)
+pnpm test:e2e:resilience         # the same in the browser, incl. a host tab closing (~2 min)
 ```
 
 Home → **Play online** → Host or Join. Share the 4-letter code, the link, or the QR code. Open more browser windows (or private windows) to add players.

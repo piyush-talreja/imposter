@@ -276,6 +276,22 @@ export function eliminate(game: Game, playerId: string): Game {
   return settle(next);
 }
 
+/**
+ * A player leaves mid-game: they're out, with no last guess even if they're the
+ * imposter, and the win conditions are checked as usual (so an imposter leaving
+ * hands the villagers the win).
+ */
+export function forfeit(game: Game, playerId: string): Game {
+  if (game.over || !(playerId in game.roles) || game.eliminated.includes(playerId)) return game;
+  const next: Game = {
+    ...game,
+    eliminated: [...game.eliminated, playerId],
+    // If they were about to guess, that chance goes with them.
+    pendingGuess: game.pendingGuess === playerId ? null : game.pendingGuess,
+  };
+  return settle(next);
+}
+
 /** Case-, space- and punctuation-insensitive; a trailing plural "s" is forgiven. */
 export function isCorrectGuess(guess: string, word: string): boolean {
   const norm = (s: string) =>

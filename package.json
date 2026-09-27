@@ -61,7 +61,9 @@
     "test:online": "node supabase/tests/smoke.mjs",
     "test:e2e:rooms": "node e2e/rooms.mjs",
     "test:online:game": "node supabase/tests/game.mjs",
-    "test:e2e:game": "node e2e/game.mjs"
+    "test:e2e:game": "node e2e/game.mjs",
+    "test:online:resilience": "node supabase/tests/resilience.mjs",
+    "test:e2e:resilience": "node e2e/resilience.mjs"
   },
   "private": true,
   "jest": {

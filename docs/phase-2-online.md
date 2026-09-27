@@ -1,6 +1,6 @@
 # Phase 2: Online private rooms
 
-Status: **M1, M2 and M3 done**. M4 (resilience) next. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
+Status: **M1–M4 done**. M5 (polish and release) next. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
 
 ## Goal
 
@@ -199,6 +199,15 @@ Each milestone ships as its own PR, and is playable or testable before the next 
 ### M4: Resilience (outline)
 
 Rejoin with the same anonymous user and resync from `public_state` plus `my-card`; host handover when the host's presence drops for 30 s; timers enforced by the function (a missed clue is a skip, a missed vote is an abstain); pg_cron deletes rooms past `expires_at`.
+
+**Shipped (M4).** Implementation notes:
+
+- **Timers:** `stamp()` sets a deadline whenever a timed clue turn or vote starts. Every phone shows the countdown, and when it reaches zero sends `tick`; the server's clock decides (early ticks get `not_yet`), and the first valid one skips the idle clue or closes the vote with the votes cast so far. Views carry `serverTime` so countdowns correct for a phone's clock drift.
+- **Leaving:** `leave` and `kick` go through the Edge Function, so the game drops the player first (`forfeit` in the engine: out, no last guess, win conditions checked). Their role is shown; their vote, and any votes or suspicion aimed at them, are dropped; and whatever was waiting on them moves on. If the Imposter leaves, the Villagers win, and the bonus round continues if an Undercover is still in.
+- **Host handover:** the host's app sends `heartbeat` every 15 s (`rooms.host_seen_at`). After 45 s of silence the first online player by seat sends `claim-host` (the others wait longer); the server checks the timestamp and swaps the host atomically.
+- **Reconnecting** resyncs on subscribe. The _Hold: your word_ button re-fetches your card privately at any point.
+- **Cleanup:** `pg_cron` runs `cleanup_expired()` hourly. It deletes rooms past `expires_at` (cascading to players, games and secrets) and anonymous users over 30 days old who aren't in any room.
+- Tests: 15 more unit tests, 6 database tests, `supabase/tests/resilience.mjs` (17 checks, with real timers) and `e2e/resilience.mjs` (6 checks in the browser, including a host tab closing).
 
 ## Testing strategy
 

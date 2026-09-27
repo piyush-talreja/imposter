@@ -11,6 +11,7 @@ import {
   cardFor,
   effectiveRoles,
   eliminate,
+  forfeit,
   isCorrectGuess,
   newGame,
   nextRound,
@@ -56,7 +57,15 @@ export type OnlineState = {
   result: VoteResult | null;
   /** Role counts at the start, which everyone is told. */
   roleCounts: { imposter: number; undercover: number };
+  /** Seconds per clue / to vote; null means no timer. */
+  timers: Timers;
+  /** When the current clue turn or vote ends (epoch ms), if timed. */
+  deadline: number | null;
+  /** Players who left mid-game (they count as out). */
+  left: string[];
 };
+
+export type Timers = { clue: number | null; vote: number | null };
 
 export class OnlineError extends Error {
   constructor(public code: string) {
@@ -73,6 +82,7 @@ export function startOnline(args: {
   players: Player[];
   settings: Settings;
   mode: ClueMode;
+  timers?: Timers;
   words: WordEntry[];
   usedWords: string[];
   history: Record<string, number>;
@@ -90,6 +100,9 @@ export function startOnline(args: {
     votes: {},
     result: null,
     roleCounts: effectiveRoles(args.settings, args.players.length),
+    timers: args.timers ?? { clue: null, vote: null },
+    deadline: null,
+    left: [],
   };
 }
 
@@ -125,9 +138,10 @@ export function markSeen(s: OnlineState, id: string): OnlineState {
   requirePhase(s, 'deal');
   if (!isPlayer(s, id)) fail('not_in_game');
   const seen = s.seen.includes(id) ? s.seen : [...s.seen, id];
-  const everyone = Object.keys(s.game.roles).every((p) => seen.includes(p));
-  return { ...s, seen, phase: everyone ? 'clues' : 'deal', turn: 0 };
+  return { ...s, seen, phase: everyoneSeen({ ...s, seen }) ? 'clues' : 'deal', turn: 0 };
 }
+
+const everyoneSeen = (s: OnlineState) => alive(s.game).every((p) => s.seen.includes(p));
 
 /**
  * Typed clues are one word, and not the player's own secret word. We only ever
@@ -198,10 +212,11 @@ export function castVote(s: OnlineState, id: string, target: string): OnlineStat
 function tally(s: OnlineState): OnlineState {
   const counts: Record<string, number> = {};
   for (const target of Object.values(s.votes)) counts[target] = (counts[target] ?? 0) + 1;
-  const top = Math.max(...Object.values(counts));
+  const top = Math.max(0, ...Object.values(counts));
   const leaders = Object.keys(counts).filter((id) => counts[id] === top);
   const round = s.game.round;
-  if (leaders.length > 1) {
+  // No votes at all (everyone timed out) or a tie: nobody is out.
+  if (leaders.length !== 1) {
     return { ...s, phase: 'reveal', result: { round, out: null, tally: counts } };
   }
   const game = eliminate(s.game, leaders[0]);
@@ -235,6 +250,71 @@ export function continueGame(s: OnlineState): OnlineState {
   };
 }
 
+// ---------------------------------------------------------------- timers and leaving
+
+/** Close the vote with the votes cast so far (the vote timer ran out). */
+export function closeVote(s: OnlineState): OnlineState {
+  requirePhase(s, 'vote');
+  return tally(s);
+}
+
+/**
+ * Set or clear the deadline after a change: a new clue turn or a new vote starts
+ * its timer; any other phase has none. `now` is passed in so this stays pure.
+ */
+export function stamp(before: OnlineState, after: OnlineState, now: number): OnlineState {
+  const newTurn =
+    after.phase === 'clues' &&
+    (before.phase !== 'clues' || before.turn !== after.turn || before.game.round !== after.game.round);
+  const newVote = after.phase === 'vote' && before.phase !== 'vote';
+  let deadline = after.deadline;
+  if (after.phase !== 'clues' && after.phase !== 'vote') deadline = null;
+  else if (newTurn) deadline = after.timers.clue ? now + after.timers.clue * 1000 : null;
+  else if (newVote) deadline = after.timers.vote ? now + after.timers.vote * 1000 : null;
+  return deadline === after.deadline ? after : { ...after, deadline };
+}
+
+/** Time's up: skip the idle clue, or close the vote. Anyone may ask; the server checks the clock. */
+export function timeout(s: OnlineState, now: number): OnlineState {
+  if (!s.deadline || now < s.deadline) fail('not_yet');
+  if (s.phase === 'clues') return skipTurn(s);
+  if (s.phase === 'vote') return closeVote(s);
+  return fail('not_yet');
+}
+
+/**
+ * A player leaves mid-game. They're out (their role is shown so the counts stay
+ * fair), their vote and suspicion are dropped, and whatever was waiting on them
+ * moves on: the deal, their clue turn, the vote, or their last guess.
+ */
+export function leave(s: OnlineState, id: string): OnlineState {
+  if (!isPlayer(s, id) || !isAlive(s, id) || s.phase === 'over') return s;
+  const before = speakers(s);
+  const index = before.indexOf(id);
+  // Drop their vote and anything aimed at them: they can't be voted out or suspected now.
+  const votes = Object.fromEntries(
+    Object.entries(s.votes).filter(([voter, target]) => voter !== id && target !== id),
+  );
+  const suspicions = Object.fromEntries(
+    Object.entries(s.suspicions).filter(([voter, clueBy]) => voter !== id && clueBy !== id),
+  );
+  let next: OnlineState = {
+    ...s,
+    game: forfeit(s.game, id),
+    left: [...s.left, id],
+    votes,
+    suspicions,
+    // Keep pointing at the same speaker when someone earlier in the order leaves.
+    turn: s.phase === 'clues' && index < s.turn ? s.turn - 1 : s.turn,
+  };
+  if (next.game.over) return { ...next, phase: 'over' };
+  if (next.phase === 'deal' && everyoneSeen(next)) next = { ...next, phase: 'clues', turn: 0 };
+  if (next.phase === 'clues' && next.turn >= speakers(next).length) next = { ...next, phase: 'discuss' };
+  if (next.phase === 'vote' && speakers(next).every((p) => p in next.votes)) next = tally(next);
+  if (next.phase === 'guess' && !next.game.pendingGuess) next = { ...next, phase: 'reveal' };
+  return next;
+}
+
 // ---------------------------------------------------------------- what phones see
 
 export type PublicView = {
@@ -260,6 +340,13 @@ export type PublicView = {
   /** The results screen is showing. */
   over: boolean;
   roleCounts: { imposter: number; undercover: number };
+  timers: Timers;
+  /** When the current clue turn or vote ends (epoch ms), if timed. */
+  deadline: number | null;
+  /** Players who left mid-game. */
+  left: string[];
+  /** Server clock when this view was written, so phones can correct for clock drift. */
+  serverTime?: number;
   /** Only once the game is over. */
   reveal: {
     word: string;
@@ -291,6 +378,9 @@ export function publicView(s: OnlineState): PublicView {
     finished: s.game.over,
     over,
     roleCounts: s.roleCounts,
+    timers: s.timers,
+    deadline: s.deadline,
+    left: s.left,
     reveal: over
       ? { word: s.game.word, cousin: s.game.cousin, roles: s.game.roles, points: scoreGame(s.game) }
       : null,

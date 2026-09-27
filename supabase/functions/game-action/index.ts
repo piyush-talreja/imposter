@@ -11,14 +11,17 @@ import {
   castVote,
   continueGame,
   guess,
+  leave,
   markSeen,
   myCard,
   openVote,
   publicView,
   skipTurn,
+  stamp,
   startOnline,
   submitClue,
   suspect,
+  timeout,
   type OnlineState,
 } from '@/features/game/online.ts';
 import { WORDS, categoryName } from '@/features/words/words.ts';
@@ -42,6 +45,7 @@ class ActionError extends Error {
 type Ctx = { admin: SupabaseClient; user: SupabaseClient; me: string; roomId: string };
 
 type Room = {
+  host_seen_at: string;
   id: string;
   host_id: string;
   status: string;
@@ -53,7 +57,7 @@ type Room = {
 async function loadRoom(ctx: Ctx): Promise<Room> {
   const { data, error } = await ctx.admin
     .from('rooms')
-    .select('id, host_id, status, settings, current_game, scores')
+    .select('id, host_id, status, settings, current_game, scores, host_seen_at')
     .eq('id', ctx.roomId)
     .maybeSingle();
   if (error) throw error;
@@ -100,12 +104,16 @@ async function start(ctx: Ctx) {
     players: players.map((p) => ({ id: p.user_id, name: p.name })),
     settings,
     mode: (room.settings.clueMode as 'typed' | 'spoken') ?? 'typed',
+    timers: {
+      clue: (room.settings.clueSeconds as number | null) ?? null,
+      vote: (room.settings.voteSeconds as number | null) ?? null,
+    },
     words: WORDS,
     usedWords: [],
     history: {},
   });
 
-  const view = publicView(state);
+  const view = { ...publicView(state), serverTime: Date.now() };
   const { data: game, error: gErr } = await ctx.admin
     .from('games')
     .insert({ room_id: ctx.roomId, round: view.round, phase: view.phase, public_state: view })
@@ -140,7 +148,9 @@ async function apply(ctx: Ctx, room: Room, change: (s: OnlineState) => OnlineSta
       .single();
     if (error) throw error;
     const before = secret.state as OnlineState;
-    const after = change(before);
+    // Every change (re)sets the clue / vote timers where needed.
+    const after = stamp(before, change(before), Date.now());
+    if (after === before) return { ok: true }; // nothing changed (e.g. leaving when already out)
 
     const { data: written, error: wErr } = await ctx.admin
       .from('game_secrets')
@@ -151,7 +161,7 @@ async function apply(ctx: Ctx, room: Room, change: (s: OnlineState) => OnlineSta
     if (wErr) throw wErr;
     if (!written?.length) continue; // someone else got there first; try again
 
-    const view = publicView(after);
+    const view = { ...publicView(after), serverTime: Date.now() };
     await ctx.admin
       .from('games')
       .update({ round: view.round, phase: view.phase, public_state: view })
@@ -179,6 +189,42 @@ async function myCardAction(ctx: Ctx, room: Room) {
     .single();
   if (error) throw error;
   return { card: myCard(data.state as OnlineState, ctx.me, room.settings as never, categoryName) };
+}
+
+/** How long the host can be silent before someone else may take over. */
+const HOST_GRACE_MS = 45_000;
+
+async function heartbeat(ctx: Ctx, room: Room) {
+  requireHost(room, ctx.me);
+  await ctx.admin.from('rooms').update({ host_seen_at: new Date().toISOString() }).eq('id', ctx.roomId);
+  return { ok: true };
+}
+
+async function claimHost(ctx: Ctx, room: Room) {
+  if (room.host_id === ctx.me) return { ok: true };
+  if (Date.now() - new Date(room.host_seen_at).getTime() < HOST_GRACE_MS)
+    throw new ActionError('host_still_here', 409);
+  // Only succeeds if nobody else claimed it first.
+  const { data } = await ctx.admin
+    .from('rooms')
+    .update({ host_id: ctx.me, host_seen_at: new Date().toISOString() })
+    .eq('id', ctx.roomId)
+    .eq('host_id', room.host_id)
+    .select('id');
+  if (!data?.length) throw new ActionError('host_still_here', 409);
+  await notify(ctx, 'room_updated');
+  return { ok: true };
+}
+
+/** Leave (or be removed): drop out of the game in progress first, then the room. */
+async function leaveRoom(ctx: Ctx, room: Room, who: string) {
+  if (room.status === 'playing' && room.current_game) await apply(ctx, room, (s) => leave(s, who));
+  const { error } =
+    who === ctx.me
+      ? await ctx.user.rpc('leave_room', { p_room: ctx.roomId })
+      : await ctx.user.rpc('kick_player', { p_room: ctx.roomId, p_user: who });
+  if (error) throw new ActionError(error.message);
+  return { ok: true };
 }
 
 async function backToLobby(ctx: Ctx, room: Room) {
@@ -240,6 +286,19 @@ Deno.serve(async (req) => {
         return json(await apply(ctx, room, continueGame));
       case 'back-to-lobby':
         return json(await backToLobby(ctx, room));
+      case 'tick':
+        // Anyone may ask; the server's clock decides whether time is really up.
+        return json(await apply(ctx, room, (s) => timeout(s, Date.now())));
+      case 'leave':
+        return json(await leaveRoom(ctx, room, me));
+      case 'kick':
+        requireHost(room, me);
+        if (typeof body.target !== 'string' || body.target === me) throw new ActionError('cannot_kick_self');
+        return json(await leaveRoom(ctx, room, body.target));
+      case 'heartbeat':
+        return json(await heartbeat(ctx, room));
+      case 'claim-host':
+        return json(await claimHost(ctx, room));
       default:
         return json({ error: 'unknown_action' }, 400);
     }

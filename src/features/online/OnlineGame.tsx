@@ -13,6 +13,7 @@ import { OUTLINE, ROLE_META, SHADOW, TOUCH, colors, fonts, radius, size, space }
 import { friendlyError } from './errors';
 import { fetchMyCard, gameAction, leaveRoom, type GameAction } from './rooms';
 import { type Room, type RoomPlayer } from './types';
+import { type Connection } from './useRoom';
 
 const LEAVE = {
   title: 'Leave the game?',
@@ -21,13 +22,33 @@ const LEAVE = {
 };
 const NEUTRAL = '#7A6EB8';
 
-type Props = { roomId: string; me: string; room: Room; players: RoomPlayer[]; game: PublicView };
+type Props = {
+  roomId: string;
+  me: string;
+  room: Room;
+  players: RoomPlayer[];
+  game: PublicView;
+  /** Everyone who has been in the room, so players who left keep their names. */
+  names?: Record<string, string>;
+  connection?: Connection;
+};
 
 /** Every online phase, for every seat: your turn or not, host or not, in or out. */
-export function OnlineGame({ roomId, me, room, players, game }: Props) {
+export function OnlineGame({
+  roomId,
+  me,
+  room,
+  players,
+  game,
+  names: allNames = {},
+  connection = 'online',
+}: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const names = useMemo(() => Object.fromEntries(players.map((p) => [p.user_id, p.name])), [players]);
+  const names = useMemo(
+    () => ({ ...allNames, ...Object.fromEntries(players.map((p) => [p.user_id, p.name])) }),
+    [players, allNames],
+  );
   const name = (id: string | null | undefined) => (id ? (names[id] ?? 'Someone') : 'Someone');
   const isHost = room.host_id === me;
   const out = game.eliminated.some((e) => e.id === me);
@@ -83,6 +104,11 @@ export function OnlineGame({ roomId, me, room, players, game }: Props) {
         ) : undefined
       }
     >
+      {connection === 'reconnecting' ? (
+        <View style={styles.banner} accessibilityLiveRegion="polite">
+          <Text style={styles.bannerText}>Offline. Reconnecting…</Text>
+        </View>
+      ) : null}
       {content}
     </Screen>
   );
@@ -112,7 +138,13 @@ export function OnlineGame({ roomId, me, room, players, game }: Props) {
     );
   }
 
-  const stillIn = <StillIn game={game} />;
+  const stillIn = (
+    <View style={styles.statusRow}>
+      <StillIn game={game} name={name} />
+      {!out ? <PeekWord key={room.current_game ?? ''} roomId={roomId} /> : null}
+    </View>
+  );
+  const timer = <Timer roomId={roomId} game={game} />;
   const outBanner = out ? (
     <View style={styles.banner}>
       <Text style={styles.bannerText}>You’re out. Watch the rest!</Text>
@@ -126,6 +158,7 @@ export function OnlineGame({ roomId, me, room, players, game }: Props) {
       <>
         {outBanner}
         {stillIn}
+        {timer}
         <Pop key={`${game.round}-${game.speaker}`}>
           <Card color={mine ? colors.pink : colors.surface} style={styles.center}>
             <Label color={mine ? colors.white : colors.textSoft}>
@@ -202,6 +235,12 @@ export function OnlineGame({ roomId, me, room, players, game }: Props) {
         onVote={(target) => send({ action: 'vote', target })}
         screen={screen}
         banner={outBanner}
+        header={
+          <>
+            {stillIn}
+            {timer}
+          </>
+        }
       />
     );
   }
@@ -309,13 +348,13 @@ export function OnlineGame({ roomId, me, room, players, game }: Props) {
 
 type ScreenFn = (content: React.ReactNode, footer?: React.ReactNode, title?: string) => React.ReactElement;
 
-function StillIn({ game }: { game: PublicView }) {
+function StillIn({ game, name }: { game: PublicView; name: (id: string) => string }) {
   const outCount = (role: Role) => game.eliminated.filter((e) => e.role === role).length;
   const items = [
     { role: 'imposter' as const, n: game.roleCounts.imposter - outCount('imposter') },
     { role: 'undercover' as const, n: game.roleCounts.undercover - outCount('undercover') },
   ].filter((i) => i.n > 0);
-  if (!items.length) return null;
+  if (!items.length && !game.left.length) return null;
   return (
     <View style={styles.stillIn}>
       <Label>Still in</Label>
@@ -328,7 +367,71 @@ function StillIn({ game }: { game: PublicView }) {
           </Text>
         </View>
       ))}
+      {game.left.length ? <Label>Left: {game.left.map(name).join(', ')}</Label> : null}
     </View>
+  );
+}
+
+/**
+ * Countdown for a timed clue turn or vote. When it hits zero this phone asks the
+ * server to move on (every phone does; the server's clock decides, and the first
+ * request wins). Server time in the view corrects for a phone's clock being off.
+ */
+function Timer({ roomId, game }: { roomId: string; game: PublicView }) {
+  const [offset] = useState(() => (game.serverTime ? game.serverTime - Date.now() : 0));
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!game.deadline) return;
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [game.deadline]);
+
+  const left = game.deadline ? Math.ceil((game.deadline - (now + offset)) / 1000) : null;
+  useEffect(() => {
+    if (left === null || left > 0) return;
+    // Retry every couple of seconds until the phase moves on.
+    gameAction(roomId, { action: 'tick' }).catch(() => {});
+  }, [roomId, left === null ? null : Math.floor(Math.min(left, 0) / 2)]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (left === null) return null;
+  const secs = Math.max(0, left);
+  return (
+    <View
+      style={[styles.timer, secs <= 5 && styles.timerLow]}
+      accessibilityRole="timer"
+      accessibilityLabel={`${secs} seconds left`}
+    >
+      <Text style={styles.timerText}>
+        {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')}
+      </Text>
+    </View>
+  );
+}
+
+/** Forgot your word? Hold to peek, let go to hide. Fetched privately, once per game (keyed by game). */
+function PeekWord({ roomId }: { roomId: string }) {
+  const [card, setCard] = useState<CardData | null>(null);
+  const [showing, setShowing] = useState(false);
+  useEffect(() => {
+    fetchMyCard(roomId)
+      .then(setCard)
+      .catch(() => {});
+  }, [roomId]);
+  if (!card) return null;
+  const word = card.kind === 'word' ? card.word : 'Imposter';
+  return (
+    <Pressable
+      onPressIn={() => setShowing(true)}
+      onPressOut={() => setShowing(false)}
+      onLongPress={() => {}}
+      accessibilityRole="button"
+      accessibilityLabel={showing ? `Your word: ${word}` : 'Hold to see your word'}
+      style={[styles.peek, showing && styles.peekOn]}
+    >
+      <Text style={styles.peekText} selectable={false}>
+        {showing ? word : 'Hold: your word'}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -500,6 +603,7 @@ function Vote({
   onVote,
   screen,
   banner,
+  header,
 }: {
   game: PublicView;
   me: string;
@@ -510,6 +614,7 @@ function Vote({
   onVote: (target: string) => void;
   screen: ScreenFn;
   banner: React.ReactNode;
+  header?: React.ReactNode;
 }) {
   const [choice, setChoice] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
@@ -520,6 +625,7 @@ function Vote({
     return screen(
       <>
         {banner}
+        {header}
         <Card style={styles.center}>
           <Character color={NEUTRAL} size={72} />
           <Text style={styles.big}>{out ? 'Voting' : 'Vote in'}</Text>
@@ -535,6 +641,7 @@ function Vote({
 
   return screen(
     <>
+      {header}
       <Label>{tally} · your vote is secret</Label>
       <View style={styles.grid}>
         {aliveIds
@@ -645,13 +752,19 @@ function Over({
   }, []);
   const reveal = game.reveal;
   const imposterWon = game.winner === 'imposters';
+  // Villagers can also win because the imposter walked out; say so.
+  const imposterLeft = !imposterWon && game.left.some((id) => reveal?.roles[id] === 'imposter');
   const headline = imposterWon
     ? {
         text: game.lastGuess?.correct ? 'Imposter guessed it' : 'Imposter wins',
         color: colors.pink,
         role: 'imposter' as Role,
       }
-    : { text: 'Imposter caught', color: colors.cyan, role: 'villager' as Role };
+    : {
+        text: imposterLeft ? 'The Imposter left' : 'Imposter caught',
+        color: colors.cyan,
+        role: 'villager' as Role,
+      };
   const ranked = [...players]
     .filter((p) => reveal?.roles[p.user_id])
     .sort((a, b) => (room.scores[b.user_id] ?? 0) - (room.scores[a.user_id] ?? 0));
@@ -721,7 +834,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bannerText: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.small },
-  stillIn: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.sm },
+  stillIn: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.sm, flex: 1 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
+  timer: {
+    alignSelf: 'center',
+    backgroundColor: colors.raised,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.xs,
+    borderWidth: 2,
+    borderColor: colors.outline,
+  },
+  timerLow: { backgroundColor: colors.pink },
+  timerText: { color: colors.text, fontFamily: fonts.display, fontSize: size.lead + 2 },
+  peek: {
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.raised,
+    paddingHorizontal: space.md,
+    paddingVertical: 6,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  peekOn: { backgroundColor: colors.raised, borderColor: colors.pink },
+  peekText: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.small },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
