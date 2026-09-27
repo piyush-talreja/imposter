@@ -99,8 +99,8 @@ check(await until(ana, /3 players · 3 online/), 'player can rejoin with the sam
 // Start: everyone moves to the placeholder
 await btn(ana, 'Start').click();
 check(
-  (await until(ben, /Game starting/)) && (await until(cy, /Game starting/)),
-  'Start moves everyone to the game screen',
+  (await until(ben, /Your card/)) && (await until(cy, /Your card/)),
+  'Start deals everyone a card',
 );
 await shot(ben, 'starting');
 

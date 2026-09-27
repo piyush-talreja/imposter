@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { ensureSignedIn, supabase } from './client';
 import { fetchRoom } from './rooms';
+import { type PublicView } from '@/features/game/online';
+
 import { type Room, type RoomPlayer } from './types';
 
 export type Connection = 'connecting' | 'online' | 'reconnecting';
@@ -11,6 +13,8 @@ export type RoomState = {
   me: string | null;
   room: Room | null;
   players: RoomPlayer[];
+  /** The current game's public view (no secrets), when one exists. */
+  game: PublicView | null;
   /** Players whose app is open and connected right now (Realtime Presence). */
   online: Set<string>;
   connection: Connection;
@@ -22,7 +26,7 @@ export type RoomState = {
 
 /**
  * Live view of a room. Joins two private channels:
- *   room:{id}     presence (who's online) + 'room_updated' events → refetch
+ *   room:{id}     presence (who's online) + 'room_updated' / 'game_updated' events → refetch
  *   player:{uid}  'kicked' (a removed player can't read the room, so it's told directly)
  */
 export function useRoom(
@@ -33,6 +37,7 @@ export function useRoom(
     me: null,
     room: null,
     players: [],
+    game: null,
     online: new Set(),
     connection: 'connecting',
     kicked: false,
@@ -42,8 +47,8 @@ export function useRoom(
   const refresh = useCallback(async () => {
     if (!roomId) return;
     try {
-      const { room, players } = await fetchRoom(roomId);
-      setState((s) => ({ ...s, room, players, gone: !room || room.status === 'closed' }));
+      const { room, players, game } = await fetchRoom(roomId);
+      setState((s) => ({ ...s, room, players, game, gone: !room || room.status === 'closed' }));
     } catch {
       setState((s) => ({ ...s, connection: 'reconnecting' }));
     }
@@ -68,6 +73,9 @@ export function useRoom(
           setState((s) => ({ ...s, online: new Set(Object.keys(room.presenceState())) }));
         })
         .on('broadcast', { event: 'room_updated' }, () => {
+          refresh();
+        })
+        .on('broadcast', { event: 'game_updated' }, () => {
           refresh();
         })
         .subscribe((status) => {

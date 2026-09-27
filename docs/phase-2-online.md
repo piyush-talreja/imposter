@@ -1,6 +1,6 @@
 # Phase 2: Online private rooms
 
-Status: **M1 and M2 done**, M3 next. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
+Status: **M1, M2 and M3 done**. M4 (resilience) next. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
 
 ## Goal
 
@@ -185,6 +185,16 @@ Each milestone ships as its own PR, and is playable or testable before the next 
 - **Suspicion:** during discussion, each player can mark up to one suspicious clue per round; counts are broadcast.
 - **Vote:** private votes to the function; "N of M voted" is broadcast; when complete, it tallies. Most votes is eliminated; **a tie means nobody is out** and another clue round starts.
 - **Reveal / guess / bonus round / scores:** the existing engine rules and points (Imposter wins +6; Imposter caught +2 everyone else; bonus Undercover caught +2 each Villager; Undercover gets away +4). Scores accumulate per room.
+
+**Shipped (M3).** Implementation notes:
+
+- The online rules live in `src/features/game/online.ts` (pure, 21 unit tests) on top of `engine.ts`. The Edge Function imports both, so there's a single set of rules.
+- Full state (engine game, votes, suspicions) is stored in `game_secrets.state`; members read only `games.public_state` (`publicView()`), which never contains words or roles until the game is over, apart from the roles of players who are out.
+- **Cards** are returned in the response to the player's own `my-card` request (authenticated), never broadcast.
+- **Typed clues** are checked only against the player's _own_ word; checking against the other word would tell a Villager what the Undercover's word is.
+- **Concurrency:** every write is conditional on `game_secrets.version`, with retries, so simultaneous votes are all counted (tested with 5 votes at once).
+- `publicView` has `finished` (the game is decided) as well as `over` (the results screen is showing): a reveal can end the game before the results screen appears.
+- Tests: `supabase/tests/game.mjs` (a 5-player game through the API: privacy, turn order, host-only actions, simultaneous votes, bonus round, scores) and `e2e/game.mjs` (the same game in 5 browser sessions).
 
 ### M4: Resilience (outline)
 

@@ -1,4 +1,7 @@
 import { ensureSignedIn, supabase } from './client';
+import { type Card } from '@/features/game/engine';
+import { type PublicView } from '@/features/game/online';
+
 import { type OnlineSettings, type Room, type RoomPlayer } from './types';
 
 // Thin wrappers over the room functions (Postgres RPCs). All rules are enforced
@@ -28,10 +31,16 @@ export const updateSettings = (roomId: string, settings: OnlineSettings) =>
 export const startGame = (roomId: string) => rpc<void>('start_game', { p_room: roomId });
 
 /** Current room and active players (readable only by members, via RLS). */
-export async function fetchRoom(roomId: string): Promise<{ room: Room | null; players: RoomPlayer[] }> {
+export async function fetchRoom(
+  roomId: string,
+): Promise<{ room: Room | null; players: RoomPlayer[]; game: PublicView | null }> {
   const sb = supabase();
   const [room, players] = await Promise.all([
-    sb.from('rooms').select('id, code, host_id, status, settings').eq('id', roomId).maybeSingle(),
+    sb
+      .from('rooms')
+      .select('id, code, host_id, status, settings, current_game, scores')
+      .eq('id', roomId)
+      .maybeSingle(),
     sb
       .from('room_players')
       .select('user_id, name, seat, waiting')
@@ -42,5 +51,38 @@ export async function fetchRoom(roomId: string): Promise<{ room: Room | null; pl
   ]);
   if (room.error) throw room.error;
   if (players.error) throw players.error;
-  return { room: (room.data as Room) ?? null, players: (players.data as RoomPlayer[]) ?? [] };
+  const current = (room.data as Room | null)?.current_game;
+  let game: PublicView | null = null;
+  if (current) {
+    const g = await sb.from('games').select('public_state').eq('id', current).maybeSingle();
+    if (g.error) throw g.error;
+    game = (g.data?.public_state as PublicView) ?? null;
+  }
+  return { room: (room.data as Room) ?? null, players: (players.data as RoomPlayer[]) ?? [], game };
 }
+
+// ---------------------------------------------------------------- game actions (Edge Function)
+
+export type GameAction =
+  | { action: 'start' | 'seen' | 'skip' | 'open-vote' | 'continue' | 'back-to-lobby' }
+  | { action: 'clue'; text: string }
+  | { action: 'suspect'; clueBy: string | null }
+  | { action: 'vote'; target: string }
+  | { action: 'guess'; text: string };
+
+async function invoke<T>(roomId: string, body: Record<string, unknown>): Promise<T> {
+  await ensureSignedIn();
+  const { data, error } = await supabase().functions.invoke('game-action', { body: { roomId, ...body } });
+  if (error) {
+    // The function answers with { error: code }; surface the code for friendlyError.
+    const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    throw new Error(detail?.error ?? error.message);
+  }
+  return data as T;
+}
+
+export const gameAction = (roomId: string, a: GameAction) => invoke<{ ok: true }>(roomId, a);
+
+/** This player's own card, straight from the server; never broadcast. */
+export const fetchMyCard = (roomId: string) =>
+  invoke<{ card: Card }>(roomId, { action: 'my-card' }).then((r) => r.card);
