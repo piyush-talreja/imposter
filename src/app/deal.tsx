@@ -2,90 +2,84 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, Card, Label, Screen } from '@/components/ui';
+import { Button, Label, Pop, Screen } from '@/components/ui';
 import { cardFor } from '@/features/game/engine';
+import { QUIT_CONFIRM } from '@/features/game/InPlay';
+import { SecretCard } from '@/features/game/SecretCard';
 import { useGame } from '@/features/game/store';
 import { categoryName } from '@/features/words/words';
-import { thud } from '@/lib/haptics';
-import { colors, font, radius, space } from '@/theme/tokens';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
+import { colors, fonts, size, space } from '@/theme/tokens';
 
+// One screen per player: their name, and a covered card they hold to peek at.
+// The card stays covered until held, so handing the phone over is safe.
 export default function Deal() {
-  const { round, players, settings } = useGame();
+  const { game, players, settings, markDealt } = useGame();
   const [index, setIndex] = useState(0);
-  const [revealed, setRevealed] = useState(false);
+  const [seen, setSeen] = useState(false);
+  const nameWidth = useColumnWidth(48);
+  useBlockBack();
 
-  if (!round) return <Redirect href="/" />;
+  if (!game) return <Redirect href="/" />;
   const player = players[index];
-  const card = cardFor(round, player.id, settings, categoryName);
-  const isLast = index === players.length - 1;
+  const next = players[index + 1];
 
-  const hideAndPass = () => {
-    setRevealed(false);
-    if (isLast) router.replace('/clues');
-    else setIndex(index + 1);
+  const advance = () => {
+    setSeen(false);
+    if (!next) {
+      markDealt();
+      router.replace('/clues');
+    } else setIndex(index + 1);
   };
+
+  const fontSize = fitFontSize(player.name, size.giant, nameWidth);
 
   return (
     <Screen
-      title={`Dealing · ${index + 1} of ${players.length}`}
-      backLabel="‹ Quit"
+      kicker={`DEALING · ${index + 1} OF ${players.length}`}
+      backLabel="Quit"
       onBack={() => router.dismissTo('/')}
+      confirmBack={QUIT_CONFIRM}
       scroll={false}
       footer={
-        revealed ? (
-          <Button label={isLast ? 'Hide word & start clues' : 'Hide word & pass'} onPress={hideAndPass} />
-        ) : (
-          <Button
-            label="Show my word"
-            onPress={() => {
-              thud();
-              setRevealed(true);
-            }}
-            accessibilityHint="Make sure nobody else can see the screen"
-          />
-        )
+        <Button
+          label={next ? `Pass to ${next.name}` : 'Start'}
+          onPress={advance}
+          disabled={!seen}
+          accessibilityHint={seen ? undefined : 'Hold the card to see your word first'}
+        />
       }
     >
-      <View style={styles.center}>
-        {!revealed ? (
-          <>
-            <Label>Pass the phone to</Label>
-            <Text style={styles.name}>{player.name}</Text>
-            <Body style={styles.muted}>Only {player.name} should look at the screen.</Body>
-          </>
-        ) : card.kind === 'word' ? (
-          <Card style={styles.card}>
-            <Label>{player.name}, your word is</Label>
-            <Text style={styles.word} adjustsFontSizeToFit numberOfLines={2}>
-              {card.word}
-            </Text>
-            <Body style={styles.muted}>Remember it. Don&apos;t say it out loud.</Body>
-          </Card>
-        ) : (
-          <Card style={[styles.card, styles.imposterCard]}>
-            <Text style={styles.emoji}>🕵️</Text>
-            <Text style={[styles.word, { color: colors.imposter }]}>Imposter</Text>
-            {card.category ? (
-              <Body style={styles.muted}>
-                Category: <Text style={{ color: colors.text, fontWeight: '700' }}>{card.category}</Text>
-              </Body>
-            ) : null}
-            <Body style={styles.muted}>
-              You don&apos;t know the word. Listen to the clues, blend in, and try to work it out.
-            </Body>
-          </Card>
-        )}
-      </View>
+      <Pop key={player.id} style={styles.center}>
+        <View style={styles.heading}>
+          <Label>For</Label>
+          <Text style={[styles.name, { fontSize, lineHeight: Math.round(fontSize * 1.1) }]} numberOfLines={1}>
+            {player.name}
+          </Text>
+        </View>
+        <View style={styles.dots} accessibilityLabel={`Player ${index + 1} of ${players.length}`}>
+          {players.map((p, i) => (
+            <View
+              key={p.id}
+              style={[styles.dot, i < index && styles.dotDone, i === index && styles.dotNow]}
+            />
+          ))}
+        </View>
+        <View style={{ width: '100%' }}>
+          <SecretCard card={cardFor(game, player.id, settings, categoryName)} onSeen={() => setSeen(true)} />
+        </View>
+      </Pop>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.md },
-  name: { color: colors.text, fontSize: font.giant, fontWeight: '900', textAlign: 'center' },
-  muted: { color: colors.muted, textAlign: 'center' },
-  card: { width: '100%', alignItems: 'center', paddingVertical: space.xxl, borderRadius: radius.lg },
-  imposterCard: { borderWidth: 2, borderColor: colors.imposter },
-  word: { color: colors.text, fontSize: font.giant, fontWeight: '900', textAlign: 'center' },
-  emoji: { fontSize: 64 },
+  center: { flex: 1, justifyContent: 'center', gap: space.lg },
+  heading: { alignItems: 'center' },
+  name: { color: colors.text, fontFamily: fonts.display, textAlign: 'center' },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, flexWrap: 'wrap' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.raised },
+  dotDone: { backgroundColor: colors.textSoft },
+  dotNow: { width: 22, backgroundColor: colors.pink },
 });

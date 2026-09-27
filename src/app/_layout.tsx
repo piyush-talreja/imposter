@@ -1,32 +1,48 @@
+import { Outfit_500Medium, Outfit_700Bold } from '@expo-google-fonts/outfit';
+import { BigShouldersDisplay_900Black } from '@expo-google-fonts/big-shoulders-display';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useGame } from '@/features/game/store';
+import { preloadSounds } from '@/lib/sound';
 import { colors } from '@/theme/tokens';
 
-// Screens inside a round must not be swiped away mid-deal/vote; they have explicit exits.
+// Read the store's hydration flag race-free: a subscribe-then-check pattern
+// (useSyncExternalStore) can't miss a hydration that finishes before mount,
+// which happens on first launch when there is nothing saved yet.
+const subscribeHydration = (cb: () => void) => useGame.persist.onFinishHydration(cb);
+const hasHydrated = () => useGame.persist.hasHydrated();
+
+// In-game screens must not be swiped away mid-deal or mid-reveal; they have explicit exits.
 const NO_SWIPE = { gestureEnabled: false } as const;
 
 export default function RootLayout() {
-  const [hydrated, setHydrated] = useState(useGame.persist.hasHydrated());
-  useEffect(() => useGame.persist.onFinishHydration(() => setHydrated(true)), []);
+  const [fontsLoaded] = useFonts({ BigShouldersDisplay_900Black, Outfit_500Medium, Outfit_700Bold });
+  const hydrated = useSyncExternalStore(subscribeHydration, hasHydrated, hasHydrated);
+  useEffect(preloadSounds, []);
 
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      {hydrated ? (
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-          <Stack.Screen name="deal" options={NO_SWIPE} />
-          <Stack.Screen name="clues" options={NO_SWIPE} />
-          <Stack.Screen name="vote" options={NO_SWIPE} />
-          <Stack.Screen name="reveal" options={NO_SWIPE} />
+      {fontsLoaded && hydrated ? (
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.bg },
+            animation: 'fade',
+          }}
+        >
+          {['deal', 'clues', 'vote-out', 'reveal', 'results'].map((name) => (
+            <Stack.Screen key={name} name={name} options={NO_SWIPE} />
+          ))}
         </Stack>
       ) : (
         <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.pink} />
         </View>
       )}
     </SafeAreaProvider>

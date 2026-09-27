@@ -2,11 +2,19 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Body, Button, Card, Chip, Label, Screen, Stepper, ToggleRow } from '@/components/ui';
-import { MIN_PLAYERS, maxImposters, wordPool } from '@/features/game/engine';
+import { Button, Card, Chip, Label, RoleMark, Screen, Stepper, ToggleRow } from '@/components/ui';
+import {
+  MIN_PLAYERS,
+  MIN_PLAYERS_FOR_UNDERCOVER,
+  effectiveRoles,
+  maxImposters,
+  maxInfiltrators,
+  maxUndercover,
+  wordPool,
+} from '@/features/game/engine';
 import { useGame } from '@/features/game/store';
 import { CATEGORIES, WORDS, type Difficulty } from '@/features/words/words';
-import { TOUCH, colors, font, radius, space } from '@/theme/tokens';
+import { OUTLINE, ROLE_META, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 const DIFFICULTIES: { id: Difficulty; label: string }[] = [
   { id: 'easy', label: 'Easy' },
@@ -18,7 +26,17 @@ const toggle = <T,>(list: T[], item: T) =>
   list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
 
 export default function Setup() {
-  const { players, settings, addPlayer, removePlayer, updateSettings, startRound, endGame } = useGame();
+  const {
+    players,
+    settings,
+    addPlayer,
+    removePlayer,
+    updateSettings,
+    startGame,
+    resetScores,
+    sound,
+    setSound,
+  } = useGame();
   const [name, setName] = useState('');
 
   const duplicate = players.some((p) => p.name.toLowerCase() === name.trim().toLowerCase());
@@ -28,61 +46,67 @@ export default function Setup() {
     setName('');
   };
 
-  const maxImp = maxImposters(players.length);
-  const poolSize = wordPool(WORDS, settings).length;
+  const n = players.length;
+  const count = Math.max(n, MIN_PLAYERS);
+  const roles = effectiveRoles(settings, count);
+  const villagers = Math.max(n - roles.undercover - roles.imposter, 0);
+  const maxImp = Math.min(maxImposters(count), maxInfiltrators(count));
+  const maxUnder = maxUndercover(count, roles.imposter);
+  const setRoles = (next: typeof roles) => updateSettings({ autoRoles: false, roles: next });
+
   const problem =
-    players.length < MIN_PLAYERS
-      ? `Add ${MIN_PLAYERS - players.length} more player${MIN_PLAYERS - players.length === 1 ? '' : 's'}`
+    n < MIN_PLAYERS
+      ? `Add ${MIN_PLAYERS - n} more player${MIN_PLAYERS - n === 1 ? '' : 's'}`
       : settings.difficulties.length === 0
-        ? 'Pick at least one difficulty'
-        : poolSize === 0
-          ? 'No words match. Try more categories or difficulties'
+        ? 'Pick a difficulty'
+        : wordPool(WORDS, settings).length === 0
+          ? 'No words match. Pick more topics'
           : null;
 
   const start = () => {
-    endGame(); // fresh scoreboard for a new game
-    startRound();
+    resetScores();
+    startGame();
     router.push('/deal');
   };
 
   return (
     <Screen
-      title="New game"
+      kicker="NEW GAME"
+      title="Players"
       footer={
         <>
           {problem ? <Text style={styles.problem}>{problem}</Text> : null}
-          <Button label="Start game" onPress={start} disabled={!!problem} />
+          <Button label="Deal" onPress={start} disabled={!!problem} />
         </>
       }
     >
-      <Card>
-        <Label>Players · {players.length}</Label>
-        <Body style={styles.hint}>Add them in seating order. Clues go clockwise.</Body>
-        {players.map((p, i) => (
-          <View key={p.id} style={styles.player}>
-            <Text style={styles.playerIndex}>{i + 1}</Text>
-            <Text style={styles.playerName}>{p.name}</Text>
-            <Pressable
-              onPress={() => removePlayer(p.id)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={`Remove ${p.name}`}
-              style={styles.remove}
-            >
-              <Text style={styles.removeText}>✕</Text>
-            </Pressable>
-          </View>
-        ))}
+      <Card badge={`${n} · in seating order`} tilt={-0.6}>
+        <View style={styles.players}>
+          {players.map((p) => (
+            <View key={p.id} style={styles.player}>
+              <Text style={styles.playerName}>{p.name}</Text>
+              <Pressable
+                onPress={() => removePlayer(p.id)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${p.name}`}
+                style={styles.remove}
+              >
+                <Text style={styles.removeText}>×</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
         <View style={styles.addRow}>
           <TextInput
             value={name}
             onChangeText={setName}
             onSubmitEditing={submitName}
-            placeholder="Player name"
-            placeholderTextColor={colors.muted}
+            placeholder="Name"
+            placeholderTextColor={colors.textSoft}
             returnKeyType="done"
             submitBehavior="submit"
-            maxLength={20}
+            maxLength={16}
             autoCapitalize="words"
             accessibilityLabel="New player name"
             style={styles.input}
@@ -91,30 +115,71 @@ export default function Setup() {
             label="Add"
             onPress={submitName}
             disabled={!name.trim() || duplicate}
-            style={{ paddingHorizontal: space.lg, flexShrink: 0 }}
+            style={styles.addButton}
           />
         </View>
-        {duplicate && name.trim() ? <Text style={styles.problem}>That name is taken</Text> : null}
+        {duplicate && name.trim() ? <Text style={styles.problem}>Name taken</Text> : null}
       </Card>
 
-      <Card>
-        <Label>Categories</Label>
+      <Card badge="Roles" tilt={0.5}>
+        <View style={styles.split}>
+          {(['villager', 'undercover', 'imposter'] as const).map((r) => (
+            <View key={r} style={styles.splitItem}>
+              <RoleMark role={r} size={22} />
+              <Text style={styles.splitCount}>{r === 'villager' ? villagers : roles[r]}</Text>
+              <Text style={styles.splitLabel}>{ROLE_META[r].label}</Text>
+            </View>
+          ))}
+        </View>
+        <Stepper
+          label="Imposters"
+          hint={maxImp > 1 ? `Up to ${maxImp}` : `More from ${n < 6 ? 6 : 10} players`}
+          color={colors.pink}
+          value={roles.imposter}
+          min={1}
+          max={maxImp}
+          onChange={(v) =>
+            setRoles({ imposter: v, undercover: Math.min(roles.undercover, maxUndercover(count, v)) })
+          }
+        />
+        <Stepper
+          label="Undercovers"
+          hint={
+            count < MIN_PLAYERS_FOR_UNDERCOVER
+              ? `From ${MIN_PLAYERS_FOR_UNDERCOVER} players`
+              : `Optional · up to ${maxUnder}`
+          }
+          color={colors.amber}
+          value={roles.undercover}
+          min={0}
+          max={maxUnder}
+          onChange={(v) => setRoles({ ...roles, undercover: v })}
+        />
         <View style={styles.chips}>
           <Chip
-            label="🎲 All"
+            label={settings.autoRoles ? 'Recommended' : 'Use recommended'}
+            selected={settings.autoRoles}
+            onPress={() => updateSettings({ autoRoles: true })}
+          />
+        </View>
+      </Card>
+
+      <Card badge="Topics" tilt={-0.4}>
+        <View style={styles.chips}>
+          <Chip
+            label="All"
             selected={settings.categoryIds.length === 0}
             onPress={() => updateSettings({ categoryIds: [] })}
           />
           {CATEGORIES.map((c) => (
             <Chip
               key={c.id}
-              label={`${c.emoji} ${c.name}`}
+              label={c.name}
               selected={settings.categoryIds.includes(c.id)}
               onPress={() => updateSettings({ categoryIds: toggle(settings.categoryIds, c.id) })}
             />
           ))}
         </View>
-
         <Label>Difficulty</Label>
         <View style={styles.chips}>
           {DIFFICULTIES.map((d) => (
@@ -125,82 +190,79 @@ export default function Setup() {
               onPress={() => updateSettings({ difficulties: toggle(settings.difficulties, d.id) })}
             />
           ))}
-          <Chip
-            label="🧒 Kids mode"
-            selected={settings.difficulties.length === 1 && settings.difficulties[0] === 'easy'}
-            onPress={() => updateSettings({ difficulties: ['easy'] })}
-          />
         </View>
       </Card>
 
-      <Card>
-        <Label>Rules</Label>
-        <Stepper
-          label="Imposters"
-          value={Math.min(settings.imposterCount, maxImp)}
-          min={1}
-          max={maxImp}
-          onChange={(v) => updateSettings({ imposterCount: v })}
-        />
-        {maxImp === 1 ? <Text style={styles.hint}>2 imposters unlock at 7 players</Text> : null}
-        <Stepper
-          label="Clue passes"
-          value={settings.passes}
-          min={1}
-          max={5}
-          onChange={(v) => updateSettings({ passes: v })}
-        />
+      <Card badge="Rules" tilt={0.4}>
         <ToggleRow
-          label="Keep score"
-          hint="Points for catching, and for fooling"
-          value={settings.scoring}
-          onChange={(v) => updateSettings({ scoring: v })}
-        />
-        <ToggleRow
-          label="Imposter sees category"
-          hint="Easier for the imposter"
-          value={settings.imposterSeesCategory && !settings.undercover}
-          disabled={settings.undercover}
+          label="Imposter sees the topic"
+          value={settings.imposterSeesCategory}
           onChange={(v) => updateSettings({ imposterSeesCategory: v })}
         />
         <ToggleRow
-          label="Undercover mode"
-          hint="The imposter gets a similar word and doesn't know they're the imposter"
-          value={settings.undercover}
-          onChange={(v) => updateSettings({ undercover: v })}
+          label="Imposter never goes first"
+          value={settings.imposterNeverFirst}
+          onChange={(v) => updateSettings({ imposterNeverFirst: v })}
         />
+        <ToggleRow
+          label="Keep score"
+          value={settings.scoring}
+          onChange={(v) => updateSettings({ scoring: v })}
+        />
+        <ToggleRow label="Sound effects" value={sound} onChange={setSound} />
       </Card>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  hint: { color: colors.muted, fontSize: font.small },
-  problem: { color: colors.warning, fontSize: font.small, textAlign: 'center' },
+  problem: { color: colors.pink, fontFamily: fonts.bodyBold, fontSize: size.small + 1, textAlign: 'center' },
+  players: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   player: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
-    minHeight: TOUCH,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderWidth: 2.5,
+    borderColor: colors.outline,
+    borderRadius: radius.pill,
+    backgroundColor: colors.raised,
+    paddingLeft: space.md,
+    minHeight: 42,
   },
-  playerIndex: { color: colors.muted, width: 20, fontWeight: '700' },
-  playerName: { color: colors.text, fontSize: font.body, flex: 1, fontWeight: '600' },
-  remove: { width: TOUCH, height: TOUCH, alignItems: 'center', justifyContent: 'center' },
-  removeText: { color: colors.muted, fontSize: font.body },
-  addRow: { flexDirection: 'row', gap: space.sm },
+  playerName: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.body },
+  remove: { width: 38, height: 40, alignItems: 'center', justifyContent: 'center' },
+  removeText: { color: colors.textSoft, fontFamily: fonts.bodyBold, fontSize: 22, lineHeight: 24 },
+  addRow: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   input: {
     flex: 1,
     minWidth: 0, // web TextInput has an intrinsic width that otherwise pushes Add out
-    minHeight: TOUCH + 8,
+    minHeight: TOUCH + 10,
     borderRadius: radius.md,
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.raised,
+    borderWidth: OUTLINE,
+    borderColor: colors.outline,
     color: colors.text,
-    fontSize: font.body,
+    fontFamily: fonts.bodyBold,
+    fontSize: size.body + 1,
     paddingHorizontal: space.md,
   },
+  addButton: { flexShrink: 0 },
+  split: { flexDirection: 'row', gap: space.sm },
+  splitItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    borderWidth: 2.5,
+    borderColor: colors.outline,
+    borderRadius: radius.md,
+    backgroundColor: colors.raised,
+    paddingVertical: space.sm,
+  },
+  splitCount: {
+    fontFamily: fonts.display,
+    fontSize: size.title,
+    lineHeight: size.title + 6,
+    color: colors.text,
+  },
+  splitLabel: { fontFamily: fonts.bodyBold, fontSize: size.small - 1, color: colors.textSoft },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });

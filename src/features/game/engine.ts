@@ -1,5 +1,20 @@
 // Pure game rules: no React, no storage. Everything random takes an injectable
 // `rng` so tests are deterministic.
+//
+// Roles:
+//   villager   - gets the secret word
+//   undercover - gets the word's close cousin, and doesn't know they're different,
+//                so they hunt the imposter alongside the villagers
+//   imposter   - gets no word, and knows it
+//
+// A game is a two-stage hunt. Each round everyone still in gives a clue, then the
+// table votes one player out and their role is revealed.
+//   1. Find the imposter(s). A caught imposter gets one guess at the word; a
+//      correct guess wins the game for the imposters outright. Imposters also win
+//      if they survive until they're no longer outnumbered.
+//   2. Once every imposter is caught, the villagers' side has won. If an
+//      undercover is still in, a bonus round begins: villagers earn extra points
+//      for catching them, and an undercover who is never caught earns a bonus.
 
 import { type Difficulty, type WordEntry } from '@/features/words/words';
 
@@ -7,52 +22,114 @@ export type Rng = () => number;
 
 export type Player = { id: string; name: string };
 
+export type Role = 'villager' | 'undercover' | 'imposter';
+
+/** Who won the main hunt. `villagers` is the whole non-imposter side, undercover included. */
+export type Winner = 'villagers' | 'imposters';
+
+export type RoleCounts = { undercover: number; imposter: number };
+
 export type Settings = {
   categoryIds: string[];
   difficulties: Difficulty[];
-  imposterCount: number;
-  /** Imposter is secretly dealt the cousin word instead of "Imposter". */
-  undercover: boolean;
-  /** Imposter is told the category (not in undercover mode). */
+  /** Use suggestRoles() for the current player count instead of the manual counts. */
+  autoRoles: boolean;
+  roles: RoleCounts;
+  /** Imposter is told the category. */
   imposterSeesCategory: boolean;
-  passes: number;
+  /** The first player to give a clue is never the imposter (they'd have nothing to go on). */
+  imposterNeverFirst: boolean;
   scoring: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   categoryIds: [],
   difficulties: ['easy', 'medium'],
-  imposterCount: 1,
-  undercover: false,
+  autoRoles: true,
+  roles: { undercover: 0, imposter: 1 },
   imposterSeesCategory: false,
-  passes: 3,
+  imposterNeverFirst: true,
   scoring: true,
 };
 
 export const MIN_PLAYERS = 3;
 
-export type Round = {
+// A few simple wins, each worth a fixed amount. The whole winning side scores,
+// including players voted out earlier: being voted out isn't their mistake.
+export const POINTS = {
+  /** Each imposter, when the imposters win. Nobody else scores. */
+  imposterWins: 6,
+  /** Everyone else (villagers + undercover), when the imposter is caught. */
+  imposterCaught: 2,
+  /** Every villager, for each undercover caught. */
+  undercoverCaught: 2,
+  /** An undercover who is never caught. */
+  undercoverUndetected: 4,
+} as const;
+
+export type Game = {
   word: string;
   cousin: string;
   categoryId: string;
-  imposterIds: string[];
-  /** Clue order: a random starting player, then clockwise around the table. */
+  roles: Record<string, Role>;
+  /** Seating order rotated to a random start; eliminated players are skipped. */
   order: string[];
-  /** voterId -> suspectId */
-  votes: Record<string, string>;
-  /** Uncaught imposter id -> did they name the secret word? */
-  guesses: Record<string, boolean>;
+  eliminated: string[];
+  round: number;
+  /** Set when an eliminated imposter is due to guess. */
+  pendingGuess: string | null;
+  lastGuess: { by: string; text: string; correct: boolean } | null;
+  /** Result of the main hunt; stays set through the undercover bonus round. */
+  winner: Winner | null;
+  /** The game has finished, bonus round included. */
+  over: boolean;
 };
 
 export type Card = { kind: 'word'; word: string } | { kind: 'imposter'; category?: string };
 
-export type RoundScore = Record<string, { points: number; reasons: string[] }>;
+/** Undercover needs enough villagers to be "close but different" from; below this it's imposter-only. */
+export const MIN_PLAYERS_FOR_UNDERCOVER = 4;
 
-/** Enough crewmates that a round is still a real game: 1 per ~3.5 players. */
+/** Upper bounds per role, so a group can't pick a split that breaks the game. */
 export function maxImposters(playerCount: number): number {
-  if (playerCount < 7) return 1;
+  if (playerCount < 6) return 1;
   if (playerCount < 10) return 2;
   return 3;
+}
+
+/** Imposters plus undercovers never outnumber the villagers at the start. */
+export function maxInfiltrators(playerCount: number): number {
+  if (playerCount <= 4) return Math.max(1, playerCount - 2);
+  return Math.floor((playerCount - 1) / 2);
+}
+
+/** Most undercovers allowed alongside `imposter` imposters. */
+export function maxUndercover(playerCount: number, imposter: number): number {
+  if (playerCount < MIN_PLAYERS_FOR_UNDERCOVER) return 0;
+  const cap = playerCount < 7 ? 1 : playerCount < 10 ? 2 : 3;
+  return Math.max(0, Math.min(cap, maxInfiltrators(playerCount) - imposter));
+}
+
+export function suggestRoles(playerCount: number): RoleCounts {
+  if (playerCount <= 4) return { undercover: 0, imposter: 1 };
+  if (playerCount <= 7) return { undercover: 1, imposter: 1 };
+  if (playerCount <= 9) return { undercover: 2, imposter: 1 };
+  if (playerCount <= 12) return { undercover: 2, imposter: 2 };
+  return { undercover: 3, imposter: 2 };
+}
+
+/**
+ * Resolve the counts actually used: always at least one imposter, undercover is
+ * optional, and both stay within their caps.
+ */
+export function effectiveRoles(settings: Settings, playerCount: number): RoleCounts {
+  const wanted = settings.autoRoles ? suggestRoles(playerCount) : settings.roles;
+  const imposter = Math.max(
+    1,
+    Math.min(wanted.imposter, maxImposters(playerCount), maxInfiltrators(playerCount)),
+  );
+  const undercover = Math.max(0, Math.min(wanted.undercover, maxUndercover(playerCount, imposter)));
+  return { undercover, imposter };
 }
 
 export function wordPool(words: WordEntry[], settings: Settings): WordEntry[] {
@@ -71,112 +148,184 @@ export function pickWord(pool: WordEntry[], usedWords: string[], rng: Rng): Word
 }
 
 /**
- * Weighted pick so everyone gets a turn as imposter over a session, without it
- * being predictable: weight = 1 / (1 + times already imposter).
+ * Weighted pick so everyone gets a turn as an infiltrator over a session, without
+ * it being predictable: weight = 1 / (1 + times already an infiltrator).
  */
-export function pickImposters(
-  players: Player[],
+export function pickWeighted(
+  ids: string[],
   count: number,
-  imposterHistory: Record<string, number>,
+  history: Record<string, number>,
   rng: Rng,
 ): string[] {
   const chosen: string[] = [];
-  let candidates = [...players];
-  for (let i = 0; i < Math.min(count, players.length - 1); i++) {
-    const weights = candidates.map((p) => 1 / (1 + (imposterHistory[p.id] ?? 0)));
+  let candidates = [...ids];
+  for (let i = 0; i < Math.min(count, ids.length); i++) {
+    const weights = candidates.map((id) => 1 / (1 + (history[id] ?? 0)));
     let r = rng() * weights.reduce((a, b) => a + b, 0);
     let idx = 0;
     while (idx < weights.length - 1 && r >= weights[idx]) r -= weights[idx++];
-    chosen.push(candidates[idx].id);
+    chosen.push(candidates[idx]);
     candidates = candidates.filter((_, j) => j !== idx);
   }
   return chosen;
 }
 
-export function clueOrder(players: Player[], rng: Rng): string[] {
-  const start = Math.floor(rng() * players.length);
+export function assignRoles(
+  players: Player[],
+  counts: RoleCounts,
+  history: Record<string, number>,
+  rng: Rng,
+): Record<string, Role> {
+  const ids = players.map((p) => p.id);
+  const infiltrators = pickWeighted(ids, counts.undercover + counts.imposter, history, rng);
+  const roles: Record<string, Role> = Object.fromEntries(ids.map((id) => [id, 'villager' as Role]));
+  infiltrators.forEach((id, i) => (roles[id] = i < counts.imposter ? 'imposter' : 'undercover'));
+  return roles;
+}
+
+/** Seating order rotated to a random start (optionally never an imposter). */
+export function clueOrder(
+  players: Player[],
+  roles: Record<string, Role>,
+  imposterNeverFirst: boolean,
+  rng: Rng,
+) {
+  const starts = players
+    .map((_, i) => i)
+    .filter((i) => !imposterNeverFirst || roles[players[i].id] !== 'imposter');
+  const start = starts[Math.floor(rng() * starts.length)];
   return [...players.slice(start), ...players.slice(0, start)].map((p) => p.id);
 }
 
-export function newRound(args: {
+export function newGame(args: {
   players: Player[];
   settings: Settings;
   words: WordEntry[];
   usedWords: string[];
-  imposterHistory: Record<string, number>;
+  history: Record<string, number>;
   rng?: Rng;
-}): Round {
-  const { players, settings, words, usedWords, imposterHistory, rng = Math.random } = args;
+}): Game {
+  const { players, settings, words, usedWords, history, rng = Math.random } = args;
   if (players.length < MIN_PLAYERS) throw new Error(`Need at least ${MIN_PLAYERS} players`);
   const entry = pickWord(wordPool(words, settings), usedWords, rng);
-  const count = Math.max(1, Math.min(settings.imposterCount, maxImposters(players.length)));
+  const roles = assignRoles(players, effectiveRoles(settings, players.length), history, rng);
   return {
     word: entry.word,
     cousin: entry.cousin,
     categoryId: entry.categoryId,
-    imposterIds: pickImposters(players, count, imposterHistory, rng),
-    order: clueOrder(players, rng),
-    votes: {},
-    guesses: {},
+    roles,
+    order: clueOrder(players, roles, settings.imposterNeverFirst, rng),
+    eliminated: [],
+    round: 1,
+    pendingGuess: null,
+    lastGuess: null,
+    winner: null,
+    over: false,
   };
 }
 
 export function cardFor(
-  round: Round,
+  game: Game,
   playerId: string,
   settings: Settings,
   categoryName: (id: string) => string,
 ): Card {
-  if (!round.imposterIds.includes(playerId)) return { kind: 'word', word: round.word };
-  if (settings.undercover) return { kind: 'word', word: round.cousin };
-  return {
-    kind: 'imposter',
-    category: settings.imposterSeesCategory ? categoryName(round.categoryId) : undefined,
-  };
+  switch (game.roles[playerId]) {
+    case 'imposter':
+      return {
+        kind: 'imposter',
+        category: settings.imposterSeesCategory ? categoryName(game.categoryId) : undefined,
+      };
+    case 'undercover':
+      return { kind: 'word', word: game.cousin };
+    default:
+      return { kind: 'word', word: game.word };
+  }
 }
 
-/**
- * Per-player scoring:
- * - Crew: +1 for voting for an imposter; +1 bonus each if every crew member did.
- * - Imposter: +1 if at least one crew member didn't vote for them; +1 bonus if
- *   nobody did; +1 more if uncaught and they named the secret word.
- * Imposters' own votes never score.
- */
-export function scoreRound(round: Round, players: Player[]): RoundScore {
-  const isImposter = (id: string) => round.imposterIds.includes(id);
-  const crew = players.filter((p) => !isImposter(p.id));
-  const score: RoundScore = Object.fromEntries(
-    players.map((p) => [p.id, { points: 0, reasons: [] as string[] }]),
-  );
-  const add = (id: string, reason: string) => {
-    score[id].points += 1;
-    score[id].reasons.push(reason);
-  };
+export const alive = (game: Game) => game.order.filter((id) => !game.eliminated.includes(id));
 
-  const crewCaught = crew.filter((p) => isImposter(round.votes[p.id] ?? ''));
-  for (const p of crewCaught) add(p.id, 'Spotted an imposter');
-  if (crew.length > 0 && crewCaught.length === crew.length) {
-    for (const p of crew) add(p.id, 'Whole crew caught them');
-  }
+const countAlive = (game: Game, role: Role) => alive(game).filter((id) => game.roles[id] === role).length;
 
-  for (const id of round.imposterIds) {
-    const votesAgainst = crew.filter((p) => round.votes[p.id] === id).length;
-    if (votesAgainst < crew.length) add(id, 'Fooled someone');
-    if (votesAgainst === 0) {
-      add(id, 'Fooled everyone');
-      if (round.guesses[id]) add(id, 'Named the secret word');
+/** The villagers won the hunt and an undercover is still at large. */
+export const inBonusRound = (game: Game) => game.winner === 'villagers' && !game.over;
+
+/** Settle `winner` and `over` after an elimination or a guess. */
+function settle(game: Game): Game {
+  const imposters = countAlive(game, 'imposter');
+  const undercovers = countAlive(game, 'undercover');
+  const villagers = countAlive(game, 'villager');
+  let { winner, over } = game;
+  if (!winner) {
+    if (imposters === 0) winner = 'villagers';
+    else if (villagers + undercovers <= imposters) {
+      winner = 'imposters';
+      over = true;
     }
   }
-  return score;
+  // The bonus hunt ends once every undercover is caught, or there aren't enough
+  // villagers left to keep hunting.
+  if (winner === 'villagers' && (undercovers === 0 || villagers <= 1)) over = true;
+  return { ...game, winner, over };
 }
 
-export function uncaughtImposters(round: Round, players: Player[]): string[] {
-  const crew = players.filter((p) => !round.imposterIds.includes(p.id));
-  return round.imposterIds.filter((id) => !crew.some((p) => round.votes[p.id] === id));
+export function eliminate(game: Game, playerId: string): Game {
+  if (game.over || game.pendingGuess || game.eliminated.includes(playerId)) return game;
+  const next: Game = { ...game, eliminated: [...game.eliminated, playerId], lastGuess: null };
+  if (game.roles[playerId] === 'imposter') return { ...next, pendingGuess: playerId };
+  return settle(next);
 }
 
-export function voteTally(round: Round): Record<string, number> {
-  const tally: Record<string, number> = {};
-  for (const suspect of Object.values(round.votes)) tally[suspect] = (tally[suspect] ?? 0) + 1;
-  return tally;
+/** Case-, space- and punctuation-insensitive; a trailing plural "s" is forgiven. */
+export function isCorrectGuess(guess: string, word: string): boolean {
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[^a-z0-9]/g, '')
+      .replace(/s$/, '');
+  return norm(guess) !== '' && norm(guess) === norm(word);
 }
+
+export function resolveGuess(game: Game, text: string, overrideCorrect?: boolean): Game {
+  if (!game.pendingGuess) return game;
+  const correct = overrideCorrect ?? isCorrectGuess(text, game.word);
+  const next: Game = { ...game, pendingGuess: null, lastGuess: { by: game.pendingGuess, text, correct } };
+  return correct ? { ...next, winner: 'imposters', over: true } : settle(next);
+}
+
+export function nextRound(game: Game): Game {
+  return game.over || game.pendingGuess ? game : { ...game, round: game.round + 1 };
+}
+
+export type ScoreLine = { points: number; reason: string };
+
+/** Points earned in a finished game, per player, with the reason for each. */
+export function scoreGame(game: Game): Record<string, ScoreLine[]> {
+  const lines: Record<string, ScoreLine[]> = {};
+  if (!game.over) return lines;
+  const add = (id: string, points: number, reason: string) => (lines[id] ??= []).push({ points, reason });
+  const ids = Object.keys(game.roles);
+
+  // The imposter won: nobody else scores.
+  if (game.winner === 'imposters') {
+    for (const id of ids) if (game.roles[id] === 'imposter') add(id, POINTS.imposterWins, 'Imposter won');
+    return lines;
+  }
+
+  const caughtUndercovers = game.eliminated.filter((id) => game.roles[id] === 'undercover').length;
+  for (const id of ids) {
+    const role = game.roles[id];
+    if (role === 'imposter') continue;
+    add(id, POINTS.imposterCaught, 'Imposter caught');
+    // Bonus round: villagers against the undercover.
+    if (role === 'villager' && caughtUndercovers > 0) {
+      add(id, POINTS.undercoverCaught * caughtUndercovers, 'Undercover caught');
+    }
+    if (role === 'undercover' && !game.eliminated.includes(id))
+      add(id, POINTS.undercoverUndetected, 'Never caught');
+  }
+  return lines;
+}
+
+export const totalPoints = (lines: ScoreLine[] = []) => lines.reduce((sum, l) => sum + l.points, 0);

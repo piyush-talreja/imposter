@@ -1,202 +1,173 @@
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Body, Button, Card, Label, Screen } from '@/components/ui';
-import { uncaughtImposters, voteTally } from '@/features/game/engine';
+import { Character, LOOK_FOR_ROLE } from '@/components/Character';
+import { Body, Button, Card, Confetti, Pop, RoleMark, Screen, Sticker } from '@/components/ui';
+import { inBonusRound, isCorrectGuess } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
-import { categoryName } from '@/features/words/words';
-import { success, thud } from '@/lib/haptics';
-import { colors, font, radius, space } from '@/theme/tokens';
-
-type Step = 'tally' | 'reveal' | 'scores';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
+import { OUTLINE, ROLE_META, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 export default function Reveal() {
-  const game = useGame();
-  const { round, players, settings, scores, lastRoundScore } = game;
-  const [step, setStep] = useState<Step>(lastRoundScore ? 'scores' : 'tally');
+  const { game, players, guess, continueRound } = useGame();
+  const [text, setText] = useState('');
+  const [missed, setMissed] = useState(false);
+  const nameWidth = useColumnWidth(48 + 48 + 12);
+  useBlockBack();
 
-  if (!round) return <Redirect href="/" />;
-  const tally = voteTally(round);
-  const maxVotes = Math.max(1, ...Object.values(tally));
-  const uncaught = uncaughtImposters(round, players);
-  const needGuesses = settings.scoring ? uncaught.filter((id) => round.guesses[id] === undefined) : [];
-  const imposterNames = round.imposterIds.map((id) => playerName(players, id)).join(' & ');
-  const caughtAll = uncaught.length === 0;
+  if (!game || game.eliminated.length === 0) return <Redirect href="/" />;
+  const outId = game.eliminated[game.eliminated.length - 1];
+  const name = playerName(players, outId);
+  const role = game.roles[outId];
+  const meta = ROLE_META[role];
+  const awaitingGuess = game.pendingGuess === outId;
+  const bonus = inBonusRound(game);
+  // The imposter was just caught and an undercover is still in: announce the bonus round.
+  const bonusStarts = bonus && role === 'imposter';
 
-  const goScores = () => {
-    game.finishRound();
-    setStep('scores');
+  const check = () => {
+    if (!text.trim()) return;
+    // An exact (normalized) match is final; a miss lets the table overrule a near-miss.
+    if (isCorrectGuess(text, game.word)) guess(text);
+    else setMissed(true);
   };
 
-  const nextRound = () => {
-    game.startRound();
-    router.replace('/deal');
-  };
+  const footer = awaitingGuess ? (
+    missed ? (
+      <>
+        <Button label="Wrong" onPress={() => guess(text)} />
+        <Button label="Close enough, count it" variant="ghost" onPress={() => guess(text, true)} />
+      </>
+    ) : (
+      <Button label="Guess" onPress={check} disabled={!text.trim()} />
+    )
+  ) : game.over ? (
+    <Button label="Results" onPress={() => router.replace('/results')} />
+  ) : (
+    <Button
+      label={bonusStarts ? 'Start bonus round' : `Round ${game.round + 1}`}
+      onPress={() => {
+        continueRound();
+        router.replace('/clues');
+      }}
+    />
+  );
 
-  const endGame = () => {
-    game.endGame();
-    router.dismissTo('/');
-  };
+  const line =
+    role === 'villager'
+      ? 'Innocent.'
+      : role === 'undercover'
+        ? `Their word was “${game.cousin}”.`
+        : awaitingGuess
+          ? 'One guess at the word.'
+          : !game.winner
+            ? 'Another Imposter is still in.'
+            : null;
 
-  if (step === 'tally') {
-    return (
-      <Screen
-        title="Votes are in"
-        onBack={null}
-        footer={
-          <Button
-            label="Reveal the imposter"
-            variant="danger"
-            onPress={() => {
-              thud();
-              setStep('reveal');
-            }}
-          />
-        }
-      >
-        {[...round.order]
-          .sort((a, b) => (tally[b] ?? 0) - (tally[a] ?? 0))
-          .map((id) => (
-            <View key={id} style={styles.tallyRow}>
-              <Text style={styles.tallyName}>{playerName(players, id)}</Text>
-              <View style={styles.barTrack}>
-                <View style={[styles.bar, { width: `${((tally[id] ?? 0) / maxVotes) * 100}%` }]} />
-              </View>
-              <Text style={styles.tallyCount}>{tally[id] ?? 0}</Text>
-            </View>
-          ))}
-      </Screen>
-    );
-  }
+  const fontSize = fitFontSize(name, size.hero, nameWidth);
 
-  if (step === 'reveal') {
-    return (
-      <Screen
-        title={round.imposterIds.length > 1 ? 'The imposters were…' : 'The imposter was…'}
-        onBack={null}
-        footer={
-          needGuesses.length === 0 ? (
-            <Button label={settings.scoring ? 'See scores' : 'Continue'} onPress={goScores} />
-          ) : null
-        }
-      >
-        <Card style={[styles.center, { borderWidth: 2, borderColor: colors.imposter }]}>
-          <Text style={styles.emoji}>🕵️</Text>
-          <Text style={styles.big}>{imposterNames}</Text>
-          <Body style={styles.muted}>
-            {caughtAll
-              ? 'Busted! The crew sniffed them out.'
-              : uncaught.length === round.imposterIds.length
-                ? 'Got away with it! Nobody suspected a thing.'
-                : 'Some of you spotted them, some were fooled.'}
-          </Body>
-        </Card>
-
-        <Card style={styles.center}>
-          <Label>The secret word</Label>
-          <Text style={styles.big}>{round.word}</Text>
-          <Body style={styles.muted}>
-            {categoryName(round.categoryId)}
-            {settings.undercover ? ` · imposter had "${round.cousin}"` : ''}
-          </Body>
-        </Card>
-
-        {needGuesses.map((id) => (
-          <Card key={id}>
-            <Body>
-              Nobody picked <Text style={{ fontWeight: '800' }}>{playerName(players, id)}</Text>. Before you
-              told them, could they name the secret word?
-            </Body>
-            <View style={styles.row}>
-              <Button
-                label="Yes, +1"
-                style={{ flex: 1 }}
-                onPress={() => {
-                  success();
-                  game.setGuess(id, true);
-                }}
-              />
-              <Button
-                label="No"
-                variant="secondary"
-                style={{ flex: 1 }}
-                onPress={() => game.setGuess(id, false)}
-              />
-            </View>
-          </Card>
-        ))}
-      </Screen>
-    );
-  }
-
-  const ranked = [...players].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0));
   return (
     <Screen
-      title={settings.scoring ? 'Scoreboard' : 'Round over'}
+      kicker={bonus && !bonusStarts ? `BONUS ROUND · ${game.round}` : `ROUND ${game.round}`}
       onBack={null}
-      footer={
-        <>
-          <Button label="Next round" onPress={nextRound} />
-          <Button label="End game" variant="ghost" onPress={endGame} />
-        </>
-      }
+      footer={footer}
     >
-      {settings.scoring ? (
-        ranked.map((p, i) => {
-          const gained = lastRoundScore?.[p.id];
-          return (
-            <View key={p.id} style={styles.scoreRow}>
-              <Text style={styles.rank}>{i === 0 && (scores[p.id] ?? 0) > 0 ? '👑' : i + 1}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.scoreName}>
-                  {p.name}
-                  {round.imposterIds.includes(p.id) ? '  🕵️' : ''}
-                </Text>
-                {gained && gained.reasons.length > 0 ? (
-                  <Text style={styles.reasons}>{gained.reasons.join(' · ')}</Text>
-                ) : null}
+      <Pop>
+        <Card tilt={-0.8} style={styles.reveal}>
+          <Text
+            style={[styles.name, { fontSize, lineHeight: Math.round(fontSize * 1.15) }]}
+            numberOfLines={1}
+          >
+            {name}
+          </Text>
+          <Pop delay={200}>
+            <Character color={meta.color} look={LOOK_FOR_ROLE[role]} size={80} />
+          </Pop>
+          <View style={styles.stickerSlot}>
+            <Confetti delay={520} />
+            <Sticker text={meta.label} color={meta.color} angle={-6} delay={420} fontSize={36} />
+          </View>
+          {line ? <Body style={styles.center}>{line}</Body> : null}
+          {game.lastGuess ? (
+            <View style={styles.guessRow}>
+              <Body style={styles.center}>Guessed “{game.lastGuess.text.trim()}”</Body>
+              <View style={[styles.verdict, game.lastGuess.correct && { backgroundColor: colors.pink }]}>
+                <Text style={styles.verdictText}>{game.lastGuess.correct ? 'Correct' : 'Wrong'}</Text>
               </View>
-              {gained && gained.points > 0 ? <Text style={styles.gained}>+{gained.points}</Text> : null}
-              <Text style={styles.total}>{scores[p.id] ?? 0}</Text>
             </View>
-          );
-        })
-      ) : (
-        <Body style={styles.muted}>Laugh about the weird clues, then deal the next word.</Body>
-      )}
+          ) : null}
+        </Card>
+      </Pop>
+
+      {awaitingGuess ? (
+        <Pop delay={650}>
+          <TextInput
+            value={text}
+            onChangeText={(t) => {
+              setText(t);
+              setMissed(false);
+            }}
+            onSubmitEditing={check}
+            placeholder="The word is…"
+            placeholderTextColor={colors.textSoft}
+            autoCapitalize="words"
+            autoCorrect={false}
+            returnKeyType="done"
+            accessibilityLabel="Imposter's guess"
+            style={styles.input}
+          />
+          {missed ? <Body style={styles.miss}>Not an exact match.</Body> : null}
+        </Pop>
+      ) : null}
+
+      {bonusStarts ? (
+        <Pop delay={300}>
+          <Card style={styles.bonus}>
+            <RoleMark role="undercover" size={32} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bonusTitle}>An Undercover is still in</Text>
+              <Body style={styles.bonusText}>Catch them for bonus points.</Body>
+            </View>
+          </Card>
+        </Pop>
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { alignItems: 'center' },
-  emoji: { fontSize: 56 },
-  big: { color: colors.text, fontSize: font.hero, fontWeight: '900', textAlign: 'center' },
-  muted: { color: colors.muted, textAlign: 'center' },
-  row: { flexDirection: 'row', gap: space.sm },
-  tallyRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  tallyName: { color: colors.text, fontSize: font.body, fontWeight: '600', width: 96 },
-  barTrack: {
-    flex: 1,
-    height: 14,
-    backgroundColor: colors.surface,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-  },
-  bar: { height: '100%', backgroundColor: colors.primary, borderRadius: radius.pill },
-  tallyCount: { color: colors.text, fontWeight: '800', width: 24, textAlign: 'right' },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    backgroundColor: colors.surface,
+  reveal: { alignItems: 'center' },
+  name: { color: colors.text, fontFamily: fonts.display, textAlign: 'center' },
+  stickerSlot: { minHeight: 84, justifyContent: 'center', alignSelf: 'stretch' },
+  center: { textAlign: 'center', color: colors.textSoft },
+  miss: { color: colors.pink, marginTop: space.sm, textAlign: 'center' },
+  input: {
+    minHeight: TOUCH + 10,
     borderRadius: radius.md,
-    padding: space.md,
+    backgroundColor: colors.raised,
+    borderWidth: OUTLINE,
+    borderColor: colors.outline,
+    color: colors.text,
+    fontFamily: fonts.bodyBold,
+    fontSize: size.lead,
+    paddingHorizontal: space.md,
   },
-  rank: { color: colors.muted, fontWeight: '800', width: 28, textAlign: 'center', fontSize: font.body },
-  scoreName: { color: colors.text, fontSize: font.body, fontWeight: '700' },
-  reasons: { color: colors.muted, fontSize: font.small - 1, marginTop: 2 },
-  gained: { color: colors.success, fontWeight: '800' },
-  total: { color: colors.text, fontSize: font.title, fontWeight: '900', minWidth: 32, textAlign: 'right' },
+  bonus: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  guessRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  verdict: {
+    backgroundColor: colors.raised,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: 4,
+  },
+  verdictText: {
+    color: colors.white,
+    fontFamily: fonts.display,
+    fontSize: size.body + 1,
+    textTransform: 'uppercase',
+  },
+  bonusTitle: { color: colors.amber, fontFamily: fonts.display, fontSize: size.lead + 2 },
+  bonusText: { color: colors.textSoft, fontSize: size.small + 1 },
 });
