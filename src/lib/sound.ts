@@ -12,24 +12,38 @@ const SOURCES = {
 export type Sound = keyof typeof SOURCES;
 
 let enabled = true;
-let configured = false;
+let ready = false;
 const players: Partial<Record<Sound, AudioPlayer>> = {};
 
 export function setSoundEnabled(on: boolean) {
   enabled = on;
 }
 
+/**
+ * Load every sound up front. Creating a player on first use means the first
+ * press waits for the file to load, which is audible as lag.
+ */
+export function preloadSounds() {
+  if (ready) return;
+  ready = true;
+  try {
+    setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(() => {});
+    for (const sound of Object.keys(SOURCES) as Sound[]) players[sound] = createAudioPlayer(SOURCES[sound]);
+  } catch {
+    // Sound is a nice-to-have; never let it break the game.
+  }
+}
+
 export function play(sound: Sound) {
   if (!enabled) return;
   try {
-    if (!configured) {
-      configured = true;
-      setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(() => {});
-    }
-    const player = (players[sound] ??= createAudioPlayer(SOURCES[sound]));
-    player.seekTo(0).catch(() => {});
+    preloadSounds();
+    const player = players[sound];
+    if (!player) return;
+    // Only rewind when it has played before; a seek before the first play adds delay.
+    if (player.currentTime > 0) player.seekTo(0).catch(() => {});
     player.play();
   } catch {
-    // Sound is a nice-to-have; never let it break the game.
+    // Ignore: sound must never break the game.
   }
 }

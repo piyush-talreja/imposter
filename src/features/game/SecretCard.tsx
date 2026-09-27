@@ -52,9 +52,9 @@ export function SecretCard({ card, onSeen }: { card: SecretCardData; onSeen: () 
     Animated.spring(peel, {
       toValue: to,
       useNativeDriver: NATIVE_DRIVER,
-      // Snappy lift, softer settle back down.
-      friction: to ? 8 : 6,
-      tension: to ? 90 : 60,
+      // Quick, no-bounce reveal; a slightly softer close.
+      friction: to ? 12 : 10,
+      tension: to ? 140 : 90,
     }).start();
 
   const press = () => {
@@ -70,23 +70,28 @@ export function SecretCard({ card, onSeen }: { card: SecretCardData; onSeen: () 
     move(0);
   };
 
+  // No scale or rotation anywhere near the word: phones rasterise text while it's
+  // being scaled or rotated, which makes it look blurry. Fades and slides only.
   const lift = {
-    transform: [
-      { scale: peel.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] }) },
-      { translateY: peel.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) },
-    ],
+    transform: [{ translateY: peel.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }],
   };
   const reveal = {
-    opacity: peel.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 0, 1] }),
+    opacity: peel.interpolate({ inputRange: [0, 0.25, 1], outputRange: [0, 0.15, 1] }),
+    transform: [{ translateY: peel.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+  };
+  // The cover peels a little and fades away, rather than swinging fully off.
+  const cover = {
+    opacity: peel.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 0.15, 0] }),
+    transformOrigin: 'top left' as const,
     transform: [
-      { translateY: peel.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) },
-      { scale: peel.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }) },
+      { rotate: peel.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-28deg'] }) },
+      { translateY: peel.interpolate({ inputRange: [0, 1], outputRange: [0, -18] }) },
     ],
   };
 
   return (
     <Animated.View style={lift}>
-      <Card tilt={-1} style={{ padding: 0 }}>
+      <Card style={{ padding: 0 }}>
         <Pressable
           onPressIn={press}
           onPressOut={release}
@@ -124,19 +129,7 @@ export function SecretCard({ card, onSeen }: { card: SecretCardData; onSeen: () 
           </Animated.View>
 
           {/* The sticker cover, hinged at its top-left corner */}
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.cover,
-              {
-                transformOrigin: 'top left',
-                transform: [
-                  { rotate: peel.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-82deg'] }) },
-                  { translateY: peel.interpolate({ inputRange: [0, 1], outputRange: [0, -34] }) },
-                ],
-              },
-            ]}
-          >
+          <Animated.View pointerEvents="none" style={[styles.cover, cover]}>
             {DOTS.map((d, i) => (
               <View
                 key={i}

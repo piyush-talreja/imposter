@@ -5,18 +5,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Changed
+- New tagline: "Someone here is faking it."
+- The rules page opens with "The game in 30 seconds" and explains each step in plain language
+- Reveal is now a fade: the cover fades as it peels and the word fades up; the card is no longer tilted or scaled
+
+### Fixed
+- The word looked blurry while held (phones rasterise text that is being scaled or rotated)
+- Reveal sound lagged: sounds are preloaded at launch and the reveal sound now starts on its first sample
+- "Undercover" wrapped onto two lines on the rules page
+
 ### Added
+
 - Vector character illustrations: a home-screen line-up with the masked Imposter, role characters on reveals, the rules page and the scoreboard, and neutral avatars on the vote screen
 - New app icon, adaptive icon, splash and favicon drawn from the same character
 - Sound effects (reveal shimmer, role thump, results chime) with an in-app mute; they mix with other audio and respect silent mode
 - Quit confirmation, dealing progress dots, and a "Still in" row showing which roles remain
 
 ### Changed
+
 - Richer hold-to-reveal: the card lifts, the cover peels back, and the word rises in; haptics on press and release
 - The Imposter card now looks the same as a word card from across the table
 - Visual rules page (Who's who · Each round · How to win · Points)
 - Scoreboard: a short summary of what scored, then clean rows with rank, character and points; the scoreboard now sits above the words
-
 
 ### Changed
 

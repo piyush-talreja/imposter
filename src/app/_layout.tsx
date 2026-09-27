@@ -3,11 +3,12 @@ import { BigShouldersDisplay_900Black } from '@expo-google-fonts/big-shoulders-d
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useGame } from '@/features/game/store';
+import { preloadSounds } from '@/lib/sound';
 import { colors } from '@/theme/tokens';
 
 // Read the store's hydration flag race-free: a subscribe-then-check pattern
@@ -22,6 +23,7 @@ const NO_SWIPE = { gestureEnabled: false } as const;
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ BigShouldersDisplay_900Black, Outfit_500Medium, Outfit_700Bold });
   const hydrated = useSyncExternalStore(subscribeHydration, hasHydrated, hasHydrated);
+  useEffect(preloadSounds, []);
 
   return (
     <SafeAreaProvider>

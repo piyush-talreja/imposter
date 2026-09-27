@@ -76,7 +76,7 @@ export default function Home() {
           ))}
         </View>
         <Pop delay={900}>
-          <Body style={styles.tagline}>One of you has no word.</Body>
+          <Body style={styles.tagline}>Someone here is faking it.</Body>
         </Pop>
       </View>
 
