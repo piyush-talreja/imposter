@@ -18,7 +18,7 @@ jobs:
         # Fresh scaffolds have no package.json yet; skip instead of failing.
         run: echo "exists=$([ -f package.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - if: steps.app.outputs.exists == 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
       - if: steps.app.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
