@@ -2,7 +2,8 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Body, Button, Card, Confetti, Label, Pop, RoleMark, Screen, Sticker } from '@/components/ui';
+import { Character, LOOK_FOR_ROLE } from '@/components/Character';
+import { Body, Button, Card, Confetti, Pop, RoleMark, Screen, Sticker } from '@/components/ui';
 import { inBonusRound, isCorrectGuess } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
@@ -81,11 +82,22 @@ export default function Reveal() {
           >
             {name}
           </Text>
+          <Pop delay={200}>
+            <Character color={meta.color} look={LOOK_FOR_ROLE[role]} size={80} />
+          </Pop>
           <View style={styles.stickerSlot}>
             <Confetti delay={520} />
             <Sticker text={meta.label} color={meta.color} angle={-6} delay={420} fontSize={36} />
           </View>
           {line ? <Body style={styles.center}>{line}</Body> : null}
+          {game.lastGuess ? (
+            <View style={styles.guessRow}>
+              <Body style={styles.center}>Guessed “{game.lastGuess.text.trim()}”</Body>
+              <View style={[styles.verdict, game.lastGuess.correct && { backgroundColor: colors.pink }]}>
+                <Text style={styles.verdictText}>{game.lastGuess.correct ? 'Correct' : 'Wrong'}</Text>
+              </View>
+            </View>
+          ) : null}
         </Card>
       </Pop>
 
@@ -107,24 +119,6 @@ export default function Reveal() {
             style={styles.input}
           />
           {missed ? <Body style={styles.miss}>Not an exact match.</Body> : null}
-        </Pop>
-      ) : null}
-
-      {game.lastGuess ? (
-        <Pop>
-          <Card tilt={0.6} style={styles.reveal}>
-            <Label>Guessed “{game.lastGuess.text.trim()}”</Label>
-            <View style={styles.stickerSlot}>
-              {game.lastGuess.correct ? <Confetti delay={150} /> : null}
-              <Sticker
-                text={game.lastGuess.correct ? 'Correct' : 'Wrong'}
-                color={game.lastGuess.correct ? colors.pink : colors.raised}
-                angle={5}
-                delay={100}
-                fontSize={30}
-              />
-            </View>
-          </Card>
         </Pop>
       ) : null}
 
@@ -161,6 +155,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
   },
   bonus: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  guessRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  verdict: {
+    backgroundColor: colors.raised,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: 4,
+  },
+  verdictText: {
+    color: colors.white,
+    fontFamily: fonts.display,
+    fontSize: size.body + 1,
+    textTransform: 'uppercase',
+  },
   bonusTitle: { color: colors.amber, fontFamily: fonts.display, fontSize: size.lead + 2 },
   bonusText: { color: colors.textSoft, fontSize: size.small + 1 },
 });

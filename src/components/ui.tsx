@@ -5,6 +5,7 @@ import {
   Easing,
   KeyboardAvoidingView,
   Platform,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { tap, thud } from '@/lib/haptics';
+import { play } from '@/lib/sound';
 import { type Role } from '@/features/game/engine';
 import {
   ACCENTS,
@@ -98,6 +100,7 @@ export function Screen({
   onBack,
   backLabel = 'Back',
   scroll = true,
+  confirmBack,
   footer,
   children,
 }: {
@@ -107,13 +110,28 @@ export function Screen({
   onBack?: (() => void) | null;
   backLabel?: string;
   scroll?: boolean;
+  /** Ask before leaving (e.g. quitting mid-game). */
+  confirmBack?: { title: string; message: string; confirmLabel: string };
   footer?: ReactNode;
   children: ReactNode;
 }) {
-  const back = onBack === undefined ? () => router.back() : onBack;
+  const [asking, setAsking] = useState(false);
+  const leave = onBack === undefined ? () => router.back() : onBack;
+  const back = leave && confirmBack ? () => setAsking(true) : leave;
   const body = <View style={styles.body}>{children}</View>;
   return (
     <Table>
+      {confirmBack && leave ? (
+        <ConfirmDialog
+          visible={asking}
+          {...confirmBack}
+          onConfirm={() => {
+            setAsking(false);
+            leave();
+          }}
+          onCancel={() => setAsking(false)}
+        />
+      ) : null}
       <SafeAreaView style={styles.fill} edges={['top', 'bottom', 'left', 'right']}>
         <KeyboardAvoidingView style={styles.column} behavior="padding">
           <View style={styles.header}>
@@ -402,7 +420,10 @@ export function Sticker({
   const avail = useColumnWidth(170);
   const fs = fitFontSize(text, fontSize, avail, { letterSpacing: 1 });
   useEffect(() => {
-    const id = setTimeout(thud, delay + 120);
+    const id = setTimeout(() => {
+      thud();
+      play('stamp');
+    }, delay + 120);
     const anim = Animated.sequence([
       Animated.delay(delay),
       Animated.spring(t, { toValue: 1, friction: 4, tension: 120, useNativeDriver: NATIVE_DRIVER }),
@@ -459,6 +480,76 @@ export function RoleMark({ role, size: d = 28 }: { role: Role; size?: number }) 
     );
   }
   return <View style={[base, { borderColor: color, borderWidth: Math.max(3, d / 7) }]} />;
+}
+
+/** Centered confirmation for risky actions (error prevention). */
+export function ConfirmDialog({
+  visible,
+  title,
+  message,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+}: {
+  visible: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <Pressable style={styles.scrim} onPress={onCancel} accessibilityLabel="Dismiss">
+        <Pressable style={styles.dialogWrap} onPress={() => {}}>
+          <Card>
+            <Text style={styles.dialogTitle}>{title}</Text>
+            <Text style={styles.dialogText}>{message}</Text>
+            <View style={styles.dialogButtons}>
+              <Button label="Cancel" variant="outline" onPress={onCancel} style={styles.fill} />
+              <Button label={confirmLabel} onPress={onConfirm} style={styles.fill} />
+            </View>
+          </Card>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+/** Gentle idle float, offset per item so a row of characters doesn't move in lockstep. */
+export function Bob({
+  children,
+  delay = 0,
+  distance = 5,
+}: {
+  children: ReactNode;
+  delay?: number;
+  distance?: number;
+}) {
+  const [t] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    const ease = { duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: NATIVE_DRIVER };
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(t, { toValue: 1, ...ease }),
+        Animated.timing(t, { toValue: 0, ...ease }),
+      ]),
+    );
+    const id = setTimeout(() => loop.start(), delay);
+    return () => {
+      clearTimeout(id);
+      loop.stop();
+    };
+  }, [t, delay]);
+  return (
+    <Animated.View
+      style={{
+        transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -distance] }) }],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
 }
 
 /** A burst of confetti flying out from the centre of its parent. Decorative only. */
@@ -708,6 +799,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   glow: { position: 'absolute', borderRadius: 9999, opacity: 0.1 },
+  scrim: { flex: 1, backgroundColor: 'rgba(5,3,10,0.72)', justifyContent: 'center', padding: space.lg },
+  dialogWrap: { width: '100%', maxWidth: 420, alignSelf: 'center' },
+  dialogTitle: { color: colors.text, fontFamily: fonts.display, fontSize: size.title },
+  dialogText: { color: colors.textSoft, fontFamily: fonts.body, fontSize: size.body, lineHeight: 24 },
+  dialogButtons: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
   confetti: {
     position: 'absolute',
     top: '50%',

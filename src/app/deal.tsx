@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Label, Pop, Screen } from '@/components/ui';
 import { cardFor } from '@/features/game/engine';
+import { QUIT_CONFIRM } from '@/features/game/InPlay';
 import { SecretCard } from '@/features/game/SecretCard';
 import { useGame } from '@/features/game/store';
 import { categoryName } from '@/features/words/words';
@@ -39,6 +40,7 @@ export default function Deal() {
       kicker={`DEALING · ${index + 1} OF ${players.length}`}
       backLabel="Quit"
       onBack={() => router.dismissTo('/')}
+      confirmBack={QUIT_CONFIRM}
       scroll={false}
       footer={
         <Button
@@ -56,6 +58,14 @@ export default function Deal() {
             {player.name}
           </Text>
         </View>
+        <View style={styles.dots} accessibilityLabel={`Player ${index + 1} of ${players.length}`}>
+          {players.map((p, i) => (
+            <View
+              key={p.id}
+              style={[styles.dot, i < index && styles.dotDone, i === index && styles.dotNow]}
+            />
+          ))}
+        </View>
         <View style={{ width: '100%' }}>
           <SecretCard card={cardFor(game, player.id, settings, categoryName)} onSeen={() => setSeen(true)} />
         </View>
@@ -68,4 +78,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', gap: space.lg },
   heading: { alignItems: 'center' },
   name: { color: colors.text, fontFamily: fonts.display, textAlign: 'center' },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, flexWrap: 'wrap' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.raised },
+  dotDone: { backgroundColor: colors.textSoft },
+  dotNow: { width: 22, backgroundColor: colors.pink },
 });

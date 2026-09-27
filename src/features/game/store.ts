@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { WORDS } from '@/features/words/words';
+import { setSoundEnabled } from '@/lib/sound';
 
 import {
   DEFAULT_SETTINGS,
@@ -33,6 +34,8 @@ type GameState = {
   dealt: boolean;
   /** Points awarded by the most recently finished game (null until it's tallied). */
   lastPoints: Record<string, ScoreLine[]> | null;
+  /** In-app mute for sound effects. */
+  sound: boolean;
 
   addPlayer: (name: string) => void;
   removePlayer: (id: string) => void;
@@ -43,6 +46,7 @@ type GameState = {
   guess: (text: string, overrideCorrect?: boolean) => void;
   continueRound: () => void;
   resetScores: () => void;
+  setSound: (on: boolean) => void;
 };
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -81,6 +85,7 @@ export const useGame = create<GameState>()(
         game: null,
         dealt: false,
         lastPoints: null,
+        sound: true,
 
         addPlayer: (name) => {
           const trimmed = name.trim();
@@ -124,6 +129,11 @@ export const useGame = create<GameState>()(
         },
 
         resetScores: () => set({ scores: {}, history: {}, lastPoints: null }),
+
+        setSound: (on) => {
+          setSoundEnabled(on);
+          set({ sound: on });
+        },
       };
     },
     {
@@ -135,6 +145,7 @@ export const useGame = create<GameState>()(
         return { players: old.players ?? [], settings: DEFAULT_SETTINGS } as Partial<GameState>;
       },
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => setSoundEnabled(state?.sound ?? true),
     },
   ),
 );

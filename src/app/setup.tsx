@@ -26,7 +26,17 @@ const toggle = <T,>(list: T[], item: T) =>
   list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
 
 export default function Setup() {
-  const { players, settings, addPlayer, removePlayer, updateSettings, startGame, resetScores } = useGame();
+  const {
+    players,
+    settings,
+    addPlayer,
+    removePlayer,
+    updateSettings,
+    startGame,
+    resetScores,
+    sound,
+    setSound,
+  } = useGame();
   const [name, setName] = useState('');
 
   const duplicate = players.some((p) => p.name.toLowerCase() === name.trim().toLowerCase());
@@ -199,6 +209,7 @@ export default function Setup() {
           value={settings.scoring}
           onChange={(v) => updateSettings({ scoring: v })}
         />
+        <ToggleRow label="Sound effects" value={sound} onChange={setSound} />
       </Card>
     </Screen>
   );

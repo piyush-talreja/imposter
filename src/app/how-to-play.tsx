@@ -1,61 +1,80 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, RoleMark, Screen } from '@/components/ui';
-import { POINTS } from '@/features/game/engine';
-import { OUTLINE, ROLE_META, colors, fonts, size, space } from '@/theme/tokens';
+import { Character, LOOK_FOR_ROLE } from '@/components/Character';
+import { Body, Card, Label, Screen } from '@/components/ui';
+import { POINTS, type Role } from '@/features/game/engine';
+import { OUTLINE, ROLE_META, colors, fonts, radius, size, space } from '@/theme/tokens';
 
-const ROLES = {
-  villager: 'Most players. Everyone shares the word.',
-  undercover: 'Optional, from 4 players. Gets a similar word and doesn’t know it.',
-  imposter: 'At least one per game. Gets no word, and knows it.',
-} as const;
+const WHO: { role: Role; caption: string }[] = [
+  { role: 'villager', caption: 'Knows the word' },
+  { role: 'undercover', caption: 'Similar word. Doesn’t know it' },
+  { role: 'imposter', caption: 'No word. Knows it' },
+];
 
-const STEPS = [
-  'Pass the phone round. Hold the card to see your word.',
-  'Everyone still in says one word as a clue.',
-  'Discuss, then vote one player out. Their role is revealed.',
-  'A caught Imposter gets one guess. If it’s right, they win.',
-  'Once the Imposter is caught, a bonus round hunts any Undercover still in.',
+const ROUND = [
+  { verb: 'Peek', text: 'Hold the card to see your word.' },
+  { verb: 'Clue', text: 'Everyone says one word about it.' },
+  { verb: 'Vote', text: 'Agree on one player to vote out.' },
+];
+
+const WIN: { role: Role; title: string; text: string }[] = [
+  { role: 'villager', title: 'Villagers win', text: 'Catch every Imposter.' },
+  { role: 'imposter', title: 'Imposter wins', text: 'Survive, or guess the word when caught.' },
+  { role: 'undercover', title: 'Bonus round', text: 'Imposter caught? Now find the Undercover.' },
 ];
 
 const SCORING: [string, number][] = [
-  ['Imposter caught: every Villager and Undercover', POINTS.imposterCaught],
-  ['Imposter wins: the Imposter', POINTS.imposterWins],
-  ['Undercover caught: every Villager', POINTS.undercoverCaught],
-  ['Undercover never caught: that Undercover', POINTS.undercoverUndetected],
+  ['Imposter caught · Villagers & Undercover', POINTS.imposterCaught],
+  ['Imposter wins · Imposter', POINTS.imposterWins],
+  ['Undercover caught · Villagers', POINTS.undercoverCaught],
+  ['Undercover never caught · Undercover', POINTS.undercoverUndetected],
 ];
 
 export default function HowToPlay() {
   return (
     <Screen kicker="RULES" title="How to play">
-      <Card badge="Roles" tilt={-0.5}>
-        {(['villager', 'undercover', 'imposter'] as const).map((r) => (
-          <View key={r} style={styles.row}>
-            <RoleMark role={r} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.roleName}>{ROLE_META[r].label}</Text>
-              <Body style={styles.muted}>{ROLES[r]}</Body>
+      <Card badge="Who’s who" tilt={-0.4}>
+        <View style={styles.who}>
+          {WHO.map(({ role, caption }) => (
+            <View key={role} style={styles.whoItem}>
+              <Character color={ROLE_META[role].color} look={LOOK_FOR_ROLE[role]} size={62} />
+              <Text style={[styles.whoName, { color: ROLE_META[role].color }]}>{ROLE_META[role].label}</Text>
+              <Text style={styles.caption}>{caption}</Text>
             </View>
-          </View>
-        ))}
+          ))}
+        </View>
       </Card>
 
-      <Card badge="Each round" tilt={0.4}>
-        {STEPS.map((text, i) => (
-          <View key={text} style={styles.row}>
+      <Card badge="Each round" tilt={0.3}>
+        {ROUND.map(({ verb, text }, i) => (
+          <View key={verb} style={styles.step}>
             <View style={styles.num}>
               <Text style={styles.numText}>{i + 1}</Text>
             </View>
-            <Body style={[styles.muted, { flex: 1 }]}>{text}</Body>
+            <Text style={styles.verb}>{verb}</Text>
+            <Body style={styles.stepText}>{text}</Body>
           </View>
         ))}
+        <Label>Repeat until someone wins.</Label>
       </Card>
+
+      <View style={styles.wins}>
+        {WIN.map(({ role, title, text }) => (
+          <Card key={role} style={[styles.win, { borderColor: ROLE_META[role].color }]}>
+            <Character color={ROLE_META[role].color} look={LOOK_FOR_ROLE[role]} size={44} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.winTitle, { color: ROLE_META[role].color }]}>{title}</Text>
+              <Body style={styles.stepText}>{text}</Body>
+            </View>
+          </Card>
+        ))}
+      </View>
 
       <Card badge="Points" tilt={-0.3}>
         {SCORING.map(([text, pts]) => (
-          <View key={text} style={styles.row}>
+          <View key={text} style={styles.pointRow}>
             <Text style={styles.pts}>+{pts}</Text>
-            <Body style={[styles.muted, { flex: 1 }]}>{text}</Body>
+            <Body style={styles.stepText}>{text}</Body>
           </View>
         ))}
       </Card>
@@ -64,19 +83,33 @@ export default function HowToPlay() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: space.md, alignItems: 'center' },
-  roleName: { fontFamily: fonts.display, fontSize: size.lead + 2, color: colors.text },
-  muted: { color: colors.textSoft, fontSize: size.small + 1, lineHeight: 21 },
+  who: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
+  whoItem: { flex: 1, alignItems: 'center', gap: 2 },
+  whoName: { fontFamily: fonts.display, fontSize: size.lead },
+  caption: { color: colors.textSoft, fontFamily: fonts.body, fontSize: size.small - 1, textAlign: 'center' },
+  step: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   num: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: OUTLINE - 0.5,
     borderColor: colors.outline,
     backgroundColor: colors.pink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numText: { fontFamily: fonts.display, fontSize: size.lead, lineHeight: 24, color: colors.white },
-  pts: { width: 32, textAlign: 'center', fontFamily: fonts.display, fontSize: size.lead, color: colors.pink },
+  numText: { fontFamily: fonts.display, fontSize: size.body + 1, lineHeight: 22, color: colors.white },
+  verb: { width: 52, fontFamily: fonts.display, fontSize: size.lead + 2, color: colors.text },
+  stepText: { flex: 1, color: colors.textSoft, fontSize: size.small + 1, lineHeight: 20 },
+  wins: { gap: space.md },
+  win: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: space.md,
+    borderRadius: radius.lg,
+  },
+  winTitle: { fontFamily: fonts.display, fontSize: size.lead + 2 },
+  pointRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  pts: { width: 34, fontFamily: fonts.display, fontSize: size.lead, color: colors.pink },
 });

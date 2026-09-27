@@ -2,13 +2,15 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Character } from '@/components/Character';
 import { Button, Pop, Screen } from '@/components/ui';
 import { alive, inBonusRound } from '@/features/game/engine';
+import { InPlay, QUIT_CONFIRM } from '@/features/game/InPlay';
 import { playerName, useGame } from '@/features/game/store';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { useBlockBack } from '@/lib/useBlockBack';
 import { tap } from '@/lib/haptics';
-import { OUTLINE, SHADOW, TOUCH, colors, fonts, onColor, radius, size, space } from '@/theme/tokens';
+import { OUTLINE, SHADOW, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 // One vote-out per round, decided out loud. The phone stays on the table.
 export default function VoteOut() {
@@ -33,6 +35,7 @@ export default function VoteOut() {
       title={inBonusRound(game) ? 'Who’s the Undercover?' : 'Vote out'}
       backLabel="Quit"
       onBack={() => router.dismissTo('/')}
+      confirmBack={QUIT_CONFIRM}
       footer={
         <Button
           label={choice ? 'Vote out' : 'Pick one'}
@@ -42,10 +45,10 @@ export default function VoteOut() {
         />
       }
     >
+      <InPlay game={game} />
       <View style={styles.grid}>
         {inGame.map((id, i) => {
           const selected = choice === id;
-          const color = selected ? colors.outline : colors.surface;
           return (
             <Pop key={id} delay={i * 45} style={styles.cell}>
               <Pressable
@@ -60,11 +63,11 @@ export default function VoteOut() {
               >
                 <View style={styles.tileShadow} />
                 <View style={[styles.tile, { backgroundColor: selected ? colors.pink : colors.raised }]}>
-                  <View style={[styles.avatar, { backgroundColor: color }]}>
-                    <Text style={[styles.initial, { color: onColor(color) }]}>
-                      {playerName(players, id).slice(0, 1).toUpperCase()}
-                    </Text>
-                  </View>
+                  <Character
+                    color={selected ? colors.surface : '#7A6EB8'}
+                    initial={playerName(players, id)}
+                    size={58}
+                  />
                   <Text
                     style={[
                       styles.tileName,
@@ -113,15 +116,5 @@ const styles = StyleSheet.create({
     minHeight: TOUCH * 3,
     justifyContent: 'center',
   },
-  avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: OUTLINE,
-    borderColor: colors.outline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initial: { fontFamily: fonts.display, fontSize: 34, lineHeight: 42 },
   tileName: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.body, textAlign: 'center' },
 });

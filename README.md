@@ -92,15 +92,14 @@ Add rows to `src/features/words/words.ts` as `[word, cousin, 'e' | 'm' | 'h']`. 
 
 ### Design
 
-The theme is "After Dark": a dim party room in deep violet with two soft spotlights, and chunky stickers with black outlines and hard shadows. Color is used sparingly and always means something:
+"After Dark": a dim party room in deep violet with two soft spotlights, and chunky stickers with black outlines and hard shadows.
 
-| Color    | Means                                         |
-| -------- | --------------------------------------------- |
-| Hot pink | Imposter, and the main action on every screen |
-| Cyan     | Villager                                      |
-| Amber    | Undercover                                    |
-
-Everything else is neutral, and players are never color-coded, so a color can't hint at anyone's role. The title shows one letter in pink: the odd one out. The fonts are Big Shoulders Display (condensed poster headlines) and Outfit (body text). Tokens live in `src/theme/tokens.ts`.
+- **Characters.** A single vector figure (`src/components/Character.tsx`) with three looks: plain (Villager, or a neutral player avatar), sunglasses (Undercover), mask (Imposter). The app icon, adaptive icon, splash and favicon in `assets/images` are rendered from the same drawing.
+- **Colour means role:** pink is the Imposter and the main action, cyan the Villager, amber the Undercover. Everything else is neutral, and players are never colour-coded.
+- **Privacy:** every secret card looks the same from across the table; the Imposter card doesn't change colour.
+- **Motion and sound:** holding the card lifts it, peels the cover back and brings the word up with a soft shimmer; role reveals land with a thump; results play a short chime. Sounds are synthesized (`assets/sounds`), mix with your music, respect the silent switch, and can be muted in setup (Apple HIG). They always accompany a visual, never replace one.
+- **UX:** Quit asks for confirmation, dealing shows progress dots, and a "Still in" row shows which roles remain (following the Nielsen heuristics: system status, error prevention, recognition over recall, minimalist design).
+- **Fonts:** Big Shoulders Display (condensed poster headlines) and Outfit (body text). Tokens live in `src/theme/tokens.ts`.
 
 ## Configuration
 

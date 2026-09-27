@@ -5,6 +5,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added
+- Vector character illustrations: a home-screen line-up with the masked Imposter, role characters on reveals, the rules page and the scoreboard, and neutral avatars on the vote screen
+- New app icon, adaptive icon, splash and favicon drawn from the same character
+- Sound effects (reveal shimmer, role thump, results chime) with an in-app mute; they mix with other audio and respect silent mode
+- Quit confirmation, dealing progress dots, and a "Still in" row showing which roles remain
+
+### Changed
+- Richer hold-to-reveal: the card lifts, the cover peels back, and the word rises in; haptics on press and release
+- The Imposter card now looks the same as a word card from across the table
+- Visual rules page (Who's who · Each round · How to win · Points)
+- Scoreboard: a short summary of what scored, then clean rows with rank, character and points; the scoreboard now sits above the words
+
+
 ### Changed
 
 - **Two-stage hunt.** The Undercover plays on the Villagers' side. Once the Imposter is caught, a bonus round hunts any Undercover still in: Villagers score for catching them, and an Undercover who is never caught scores a bonus. Scores are itemised on the results screen.

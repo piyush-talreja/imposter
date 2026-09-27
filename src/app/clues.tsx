@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Body, Button, Card, Label, Pop, Screen } from '@/components/ui';
 import { alive, inBonusRound } from '@/features/game/engine';
+import { InPlay, QUIT_CONFIRM } from '@/features/game/InPlay';
 import { playerName, useGame } from '@/features/game/store';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { useBlockBack } from '@/lib/useBlockBack';
@@ -30,6 +31,7 @@ export default function Clues() {
       title={done ? 'Discuss' : 'Clues'}
       backLabel="Quit"
       onBack={() => router.dismissTo('/')}
+      confirmBack={QUIT_CONFIRM}
       footer={
         done ? (
           <Button label="Vote" onPress={() => router.replace('/vote-out')} />
@@ -41,6 +43,7 @@ export default function Clues() {
         )
       }
     >
+      <InPlay game={game} />
       <Pop key={done ? 'done' : speaker}>
         <Card color={done ? colors.surface : colors.pink} tilt={done ? 1 : -1} style={styles.spotlight}>
           {done ? (
