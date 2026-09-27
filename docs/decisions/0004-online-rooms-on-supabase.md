@@ -1,0 +1,6 @@
+# 4. Online rooms on Supabase, with Realtime for everything live
+
+- **Status:** Accepted. Supersedes the "no backend" part of [ADR 0002](0002-offline-pass-and-play-no-backend.md) for online mode only; pass-and-play stays offline.
+- **Context:** Phase 2 adds private online rooms. Secret words and roles must never reach another player's phone. Rooms are short-lived (≤ 24 h) and the game is mostly live events. The project guide defaults to Supabase. A room-server model (for example, Cloudflare Durable Objects) was considered and fits well, but we chose to stay on Supabase only.
+- **Decision:** Use Supabase. Keep Postgres small and trusted (rooms, players, game state, secrets); send everything live over Realtime (Presence for who's online, Broadcast on `room:{id}` for public events, and on a private `player:{uid}` channel for each card). Room management goes through `security definer` RPCs; game actions go through one Edge Function that runs the shared `engine.ts`. No client writes; RLS on every table; `game_secrets` has no client policy at all.
+- **Consequences:** One set of game rules for offline and online. More moving parts than a room server (RLS, RPC, Edge Function, Realtime authorization), so the security rules get their own pgTAP tests. Local development needs Docker. Adding accounts or stats later is easy on Postgres.
