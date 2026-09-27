@@ -26,8 +26,8 @@ export default function HowToPlay() {
               {r === 'villager'
                 ? 'Most of the table. You all share the secret word.'
                 : r === 'undercover'
-                  ? 'Gets a word that’s close but different (Pizza → Calzone), and doesn’t know it’s different. Blend in until you work it out.'
-                  : 'Gets no word, and knows it. Bluff from the clues, and if you’re caught, guess the word to steal the win.'}
+                  ? 'Optional, from 4 players. Gets a word that’s close but different (Pizza → Calzone), and doesn’t know it’s different. Blend in until you work it out.'
+                  : 'Every game has at least one. Gets no word, and knows it. Bluff from the clues, and if you’re caught, guess the word to steal the win.'}
             </Type>
           </View>
         ))}

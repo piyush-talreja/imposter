@@ -3,7 +3,14 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button, Label, Paper, Screen, Stepper, Tag, ToggleRow, Type } from '@/components/ui';
-import { MIN_PLAYERS, effectiveRoles, maxInfiltrators, wordPool } from '@/features/game/engine';
+import {
+  MIN_PLAYERS,
+  MIN_PLAYERS_FOR_UNDERCOVER,
+  effectiveRoles,
+  maxInfiltrators,
+  maxUndercover,
+  wordPool,
+} from '@/features/game/engine';
 import { useGame } from '@/features/game/store';
 import { CATEGORIES, WORDS, type Difficulty } from '@/features/words/words';
 import { ROLE_META, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
@@ -30,7 +37,8 @@ export default function Setup() {
 
   const n = players.length;
   const roles = effectiveRoles(settings, Math.max(n, MIN_PLAYERS));
-  const maxInf = maxInfiltrators(Math.max(n, MIN_PLAYERS));
+  const count = Math.max(n, MIN_PLAYERS);
+  const maxInf = maxInfiltrators(count);
   const villagers = n - roles.undercover - roles.imposter;
   const setRoles = (patch: Partial<typeof roles>) =>
     updateSettings({ autoRoles: false, roles: { ...roles, ...patch } });
@@ -116,22 +124,28 @@ export default function Setup() {
           ))}
         </View>
         <Stepper
-          label="Undercover"
-          hint="Gets a similar word, doesn't know it"
-          ink={colors.undercover}
-          value={roles.undercover}
-          min={roles.imposter === 0 ? 1 : 0}
-          max={maxInf - roles.imposter}
-          onChange={(v) => setRoles({ undercover: v })}
-        />
-        <Stepper
           label="Imposter"
-          hint="Gets no word, knows it"
+          hint="Gets no word, knows it. Always at least one"
           ink={colors.imposter}
           value={roles.imposter}
-          min={roles.undercover === 0 ? 1 : 0}
-          max={maxInf - roles.undercover}
-          onChange={(v) => setRoles({ imposter: v })}
+          min={1}
+          max={maxInf}
+          onChange={(v) =>
+            setRoles({ imposter: v, undercover: Math.min(roles.undercover, maxUndercover(count, v)) })
+          }
+        />
+        <Stepper
+          label="Undercover"
+          hint={
+            count < MIN_PLAYERS_FOR_UNDERCOVER
+              ? `Optional · unlocks at ${MIN_PLAYERS_FOR_UNDERCOVER} players`
+              : "Optional · gets a similar word, doesn't know it"
+          }
+          ink={colors.undercover}
+          value={roles.undercover}
+          min={0}
+          max={maxUndercover(count, roles.imposter)}
+          onChange={(v) => setRoles({ undercover: v })}
         />
         <Tag
           label={settings.autoRoles ? '✓ Suggested split' : 'Use suggested split'}

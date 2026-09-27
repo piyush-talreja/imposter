@@ -47,14 +47,14 @@ There are three roles, and nobody knows who is who:
 
 ### Options
 
-| Option                    | What it does                                                                                                                                |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Roles                     | A suggested split for the group size, or set the Undercover and Imposter counts yourself. Villagers always start in the majority            |
-| Case files                | 12 categories, or All                                                                                                                       |
-| Difficulty / Kids         | Easy, medium, hard. Kids uses easy words only                                                                                               |
-| Imposter sees category    | Gives the player with no word something to go on                                                                                            |
-| Imposter never goes first | The first clue always comes from someone who has a word                                                                                     |
-| Keep score                | Everyone on the winning side scores: Villager 2, Undercover 5, Imposter 6. A lone Imposter win (a correct guess) scores 6 for that Imposter |
+| Option                    | What it does                                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Roles                     | Always at least **1 Imposter**. **Undercover is optional**, available from 4 players. Use the suggested split for your group size, or set the counts yourself |
+| Case files                | 12 categories, or All                                                                                                                                         |
+| Difficulty / Kids         | Easy, medium, hard. Kids uses easy words only                                                                                                                 |
+| Imposter sees category    | Gives the player with no word something to go on                                                                                                              |
+| Imposter never goes first | The first clue always comes from someone who has a word                                                                                                       |
+| Keep score                | Everyone on the winning side scores: Villager 2, Undercover 5, Imposter 6. A lone Imposter win (a correct guess) scores 6 for that Imposter                   |
 
 ## Scripts
 

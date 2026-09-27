@@ -5,7 +5,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Changed
+
+- Every game has at least one Imposter. Undercover is optional, available from 4 players; 3-player games are 2 Villagers and 1 Imposter.
+
 ### Fixed
+
 - Stamps and long names shrank to an unreadable size or were clipped on phones. `adjustsFontSizeToFit` collapses text inside containers that size to their content, so text is now sized to the screen width on every platform.
 - First launch with no saved data could hang on the loading spinner, because the app missed the "saved data loaded" signal.
 - The on-screen keyboard covered the guess input and the button below it.
