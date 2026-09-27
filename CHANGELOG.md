@@ -6,11 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Changed
+
 - New tagline: "Someone here is faking it."
 - The rules page opens with "The game in 30 seconds" and explains each step in plain language
 - Reveal is now a fade: the cover fades as it peels and the word fades up; the card is no longer tilted or scaled
 
 ### Fixed
+
+- When the Imposter wins, the Undercover no longer scores; only the Imposter does
 - The reveal sound played only on every other press: it now waits for the rewind to finish before replaying, and uses a small pool of players so rapid presses overlap
 - The word looked blurry while held (phones rasterise text that is being scaled or rotated)
 - Reveal sound lagged: sounds are preloaded at launch and the reveal sound now starts on its first sample

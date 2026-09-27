@@ -32,7 +32,7 @@ function summary(game: Game): { text: string; points: number; color: string }[] 
       points: POINTS.undercoverCaught * caught,
       color: colors.cyan,
     });
-  if (caught < undercovers.length) {
+  if (game.winner === 'villagers' && caught < undercovers.length) {
     lines.push({ text: 'Undercover never caught', points: POINTS.undercoverUndetected, color: colors.amber });
   }
   return lines;

@@ -61,7 +61,7 @@ export const POINTS = {
   imposterWins: 6,
   /** Every villager, for each undercover caught. */
   undercoverCaught: 2,
-  /** An undercover who is never caught. */
+  /** An undercover who is never caught, when the villagers' side wins. */
   undercoverUndetected: 4,
 } as const;
 
@@ -313,7 +313,9 @@ export function scoreGame(game: Game): Record<string, ScoreLine[]> {
     if (role === 'villager' && caughtUndercovers > 0) {
       add(id, POINTS.undercoverCaught * caughtUndercovers, 'Undercover caught');
     }
-    if (role === 'undercover' && !game.eliminated.includes(id)) {
+    // The undercover plays on the villagers' side, so their bonus only counts
+    // when that side wins; if the imposter wins, nobody else scores.
+    if (role === 'undercover' && game.winner === 'villagers' && !game.eliminated.includes(id)) {
       add(id, POINTS.undercoverUndetected, 'Never caught');
     }
   }

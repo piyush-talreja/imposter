@@ -209,8 +209,8 @@ describe('stage 1: find the imposter', () => {
     const g = resolveGuess(eliminate(baseGame(), 'fay'), '  pizzas! ');
     expect(g.winner).toBe('imposters');
     expect(g.over).toBe(true);
-    // The undercover was never caught, so they still get their bonus.
-    expect(points(g)).toEqual({ fay: POINTS.imposterWins, eli: POINTS.undercoverUndetected });
+    // Only the imposter scores; the undercover gets nothing when the imposter wins.
+    expect(points(g)).toEqual({ fay: POINTS.imposterWins });
   });
 
   it('the table can accept a near-miss guess', () => {

@@ -49,7 +49,7 @@ const SCORING: [string, number][] = [
   ['Imposter caught: every Villager and Undercover', POINTS.imposterCaught],
   ['Imposter wins: the Imposter', POINTS.imposterWins],
   ['Undercover caught: every Villager', POINTS.undercoverCaught],
-  ['Undercover never caught: the Undercover', POINTS.undercoverUndetected],
+  ['Undercover never caught (Imposter caught): the Undercover', POINTS.undercoverUndetected],
 ];
 
 export default function HowToPlay() {

@@ -43,12 +43,12 @@ Each round, everyone still in gives a one-word clue, the table discusses, and th
 
 ### Scoring
 
-| Event                            | Points                               |
-| -------------------------------- | ------------------------------------ |
-| Imposter caught                  | every Villager and Undercover **+2** |
-| Imposter wins                    | each Imposter **+6**                 |
-| Undercover caught (at any point) | every Villager **+2** per Undercover |
-| Undercover never caught          | that Undercover **+4**               |
+| Event                                                | Points                                   |
+| ---------------------------------------------------- | ---------------------------------------- |
+| Imposter caught                                      | every Villager and Undercover **+2**     |
+| Imposter wins                                        | each Imposter **+6**; nobody else scores |
+| Undercover caught (at any point)                     | every Villager **+2** per Undercover     |
+| Undercover never caught, and the Imposter was caught | that Undercover **+4**                   |
 
 ### Options
 
