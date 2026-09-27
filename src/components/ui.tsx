@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
+  KeyboardAvoidingView,
   Image,
   Platform,
   Pressable,
@@ -18,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { GLYPH, fitFontSize, useColumnWidth } from '@/lib/fit';
 import { tap, thud } from '@/lib/haptics';
 import { TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
@@ -74,7 +76,7 @@ export function Screen({
   return (
     <Desk>
       <SafeAreaView style={styles.fill} edges={['top', 'bottom', 'left', 'right']}>
-        <View style={styles.column}>
+        <KeyboardAvoidingView style={styles.column} behavior="padding">
           <View style={styles.header}>
             {back ? (
               <Pressable
@@ -104,7 +106,7 @@ export function Screen({
             <View style={[styles.scroll, styles.fill]}>{body}</View>
           )}
           {footer ? <View style={styles.footer}>{footer}</View> : null}
-        </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Desk>
   );
@@ -324,6 +326,12 @@ export function Stamp({
   fontSize?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  // Inside a Paper on the screen column: paddings, stamp borders and inner padding.
+  const fs = fitFontSize(text, fontSize, useColumnWidth(48 + 48 + 60), {
+    glyph: GLYPH.stencil,
+    letterSpacing: 3,
+    min: 18,
+  });
   const [t] = useState(() => new Animated.Value(0));
   useEffect(() => {
     const anim = Animated.sequence([
@@ -360,7 +368,7 @@ export function Stamp({
       ]}
     >
       <View style={[styles.stampRule, { borderColor: ink }]}>
-        <Text style={[styles.stampText, { color: ink, fontSize }]} numberOfLines={1} adjustsFontSizeToFit>
+        <Text style={[styles.stampText, { color: ink, fontSize: fs }]} numberOfLines={1}>
           {text.toUpperCase()}
         </Text>
       </View>

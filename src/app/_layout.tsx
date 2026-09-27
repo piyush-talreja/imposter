@@ -4,12 +4,18 @@ import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router/stack';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useGame } from '@/features/game/store';
 import { colors } from '@/theme/tokens';
+
+// Read the store's hydration flag race-free: a subscribe-then-check pattern
+// (useSyncExternalStore) can't miss a hydration that finishes before mount,
+// which happens on first launch when there is nothing saved yet.
+const subscribeHydration = (cb: () => void) => useGame.persist.onFinishHydration(cb);
+const hasHydrated = () => useGame.persist.hasHydrated();
 
 // In-game screens must not be swiped away mid-deal or mid-verdict; they have explicit exits.
 const NO_SWIPE = { gestureEnabled: false } as const;
@@ -20,8 +26,7 @@ export default function RootLayout() {
     BlackOpsOne_400Regular,
     SpecialElite_400Regular,
   });
-  const [hydrated, setHydrated] = useState(useGame.persist.hasHydrated());
-  useEffect(() => useGame.persist.onFinishHydration(() => setHydrated(true)), []);
+  const hydrated = useSyncExternalStore(subscribeHydration, hasHydrated, hasHydrated);
 
   return (
     <SafeAreaProvider>

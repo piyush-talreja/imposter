@@ -5,10 +5,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, Label, Paper, Rise, Screen, Type } from '@/components/ui';
 import { alive } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { colors, fonts, size, space } from '@/theme/tokens';
 
 export default function Clues() {
   const { game, players } = useGame();
+  const nameWidth = useColumnWidth(48 + 48 + 4);
+  useBlockBack();
   const [turn, setTurn] = useState(0);
 
   if (!game) return <Redirect href="/" />;
@@ -51,7 +55,13 @@ export default function Clues() {
               <Label>
                 Suspect {turn + 1} of {speakers.length}
               </Label>
-              <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>
+              <Text
+                style={[
+                  styles.big,
+                  sized(fitFontSize(playerName(players, speaker), size.hero + 4, nameWidth, { wrap: true })),
+                ]}
+                numberOfLines={2}
+              >
                 {playerName(players, speaker)}
               </Text>
               <Type style={styles.center}>
@@ -96,6 +106,8 @@ export default function Clues() {
     </Screen>
   );
 }
+
+const sized = (fontSize: number) => ({ fontSize, lineHeight: Math.round(fontSize * 1.2) });
 
 const styles = StyleSheet.create({
   spotlight: { alignItems: 'center', paddingVertical: space.xl },

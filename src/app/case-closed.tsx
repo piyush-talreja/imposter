@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, Label, Paper, Rise, Screen, Stamp, Type } from '@/components/ui';
 import { type Winner } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { categoryName } from '@/features/words/words';
 import { ROLE_META, colors, fonts, size, space } from '@/theme/tokens';
 
@@ -15,6 +16,7 @@ const HEADLINE: Record<Winner, { stamp: string; ink: string; line: string }> = {
 
 export default function CaseClosed() {
   const { game, players, settings, scores, lastPoints, startGame } = useGame();
+  useBlockBack();
   if (!game?.winner) return <Redirect href="/" />;
   const head = HEADLINE[game.winner];
   const ranked = [...players].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0));

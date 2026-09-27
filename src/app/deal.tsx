@@ -6,11 +6,15 @@ import { Button, Label, Rise, Screen, Type } from '@/components/ui';
 import { cardFor } from '@/features/game/engine';
 import { SecretCard } from '@/features/game/SecretCard';
 import { useGame } from '@/features/game/store';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { categoryName } from '@/features/words/words';
 import { colors, fonts, size, space } from '@/theme/tokens';
 
 export default function Deal() {
   const { game, players, settings, markDealt } = useGame();
+  const nameWidth = useColumnWidth(48);
+  useBlockBack();
   const [index, setIndex] = useState(0);
   const [claimed, setClaimed] = useState(false);
   const [seen, setSeen] = useState(false);
@@ -43,14 +47,22 @@ export default function Deal() {
             accessibilityHint={seen ? undefined : 'Hold the card to see your word first'}
           />
         ) : (
-          <Button label={`I'm ${player.name}`} ink={colors.ink} onPress={() => setClaimed(true)} />
+          <Button
+            label="That's me"
+            accessibilityHint={`Only ${player.name} should tap this`}
+            ink={colors.ink}
+            onPress={() => setClaimed(true)}
+          />
         )
       }
     >
       {!claimed ? (
         <Rise key={`pass-${index}`} style={styles.center}>
           <Label color={colors.mutedOnDark}>Hand the phone to</Label>
-          <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit>
+          <Text
+            style={[styles.name, sized(fitFontSize(player.name, size.giant + 8, nameWidth, { wrap: true }))]}
+            numberOfLines={2}
+          >
             {player.name}
           </Text>
           <Type style={styles.muted}>Everyone else, look away.</Type>
@@ -72,6 +84,8 @@ export default function Deal() {
     </Screen>
   );
 }
+
+const sized = (fontSize: number) => ({ fontSize, lineHeight: Math.round(fontSize * 1.2) });
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.lg },

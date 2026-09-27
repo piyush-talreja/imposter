@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Label, NATIVE_DRIVER, Paper, Type } from '@/components/ui';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { thud } from '@/lib/haptics';
 import { colors, fonts, size, space } from '@/theme/tokens';
 
@@ -18,6 +19,11 @@ export function SecretCard({ name, card, onSeen }: { name: string; card: Card; o
   const [lift] = useState(() => new Animated.Value(0));
   const [pulse] = useState(() => new Animated.Value(0));
   const [holding, setHolding] = useState(false);
+  const wordWidth = useColumnWidth(48 + 2 + 48);
+  const wordSize = (text: string) => {
+    const fontSize = fitFontSize(text, size.giant - 6, wordWidth, { wrap: true });
+    return { fontSize, lineHeight: Math.round(fontSize * 1.18) };
+  };
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -58,6 +64,8 @@ export function SecretCard({ name, card, onSeen }: { name: string; card: Card; o
         onPressOut={release}
         // A very quick tap can end before onPressIn fires; still count it as seen.
         onPress={onSeen}
+        // Web: a long press must not open the browser's context menu.
+        onLongPress={() => {}}
         accessibilityRole="button"
         accessibilityLabel={holding ? secretLabel(card) : 'Press and hold to reveal your secret word'}
         accessibilityHint="Only you should be looking at the screen"
@@ -68,7 +76,7 @@ export function SecretCard({ name, card, onSeen }: { name: string; card: Card; o
           {card.kind === 'word' ? (
             <>
               <Label>Your secret word</Label>
-              <Text style={styles.word} numberOfLines={2} adjustsFontSizeToFit>
+              <Text style={[styles.word, wordSize(card.word)]} numberOfLines={3} selectable={false}>
                 {card.word}
               </Text>
               <Type style={styles.note}>Memorise it. Never say it.</Type>
@@ -76,7 +84,12 @@ export function SecretCard({ name, card, onSeen }: { name: string; card: Card; o
           ) : (
             <>
               <Label color={colors.imposter}>No word for you</Label>
-              <Text style={[styles.word, { color: colors.imposter }]}>Imposter</Text>
+              <Text
+                style={[styles.word, wordSize('Imposter'), { color: colors.imposter }]}
+                selectable={false}
+              >
+                Imposter
+              </Text>
               {card.category ? (
                 <Type style={styles.note}>
                   Category: <Text style={{ color: colors.ink }}>{card.category}</Text>

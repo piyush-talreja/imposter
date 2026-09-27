@@ -5,12 +5,17 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Label, Rise, Screen, Type } from '@/components/ui';
 import { alive } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { tap } from '@/lib/haptics';
 import { TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 // One accusation per round, decided out loud. The phone stays on the table.
 export default function Eliminate() {
   const { game, players, eliminatePlayer } = useGame();
+  useBlockBack();
+  // Two cards per row: screen padding, gap, card padding and borders.
+  const cardText = useColumnWidth(48 + 16) / 2 - 28;
   const [choice, setChoice] = useState<string | null>(null);
 
   if (!game) return <Redirect href="/" />;
@@ -28,13 +33,7 @@ export default function Eliminate() {
       title="Who goes?"
       backLabel="Quit"
       onBack={() => router.dismissTo('/')}
-      footer={
-        <Button
-          label={choice ? `Eliminate ${playerName(players, choice)}` : 'Pick a suspect'}
-          onPress={confirm}
-          disabled={!choice}
-        />
-      }
+      footer={<Button label={choice ? 'Eliminate' : 'Pick a suspect'} onPress={confirm} disabled={!choice} />}
     >
       <Type style={styles.lead}>
         Argue it out, then agree on one suspect. Their true identity will be revealed.
@@ -61,7 +60,18 @@ export default function Eliminate() {
                 <View style={styles.photo}>
                   <Text style={styles.initial}>{playerName(players, id).slice(0, 1).toUpperCase()}</Text>
                 </View>
-                <Text style={styles.cardName} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.cardName,
+                    {
+                      fontSize: fitFontSize(playerName(players, id), size.lead, cardText, {
+                        wrap: true,
+                        min: 12,
+                      }),
+                    },
+                  ]}
+                  numberOfLines={2}
+                >
                   {playerName(players, id)}
                 </Text>
                 {selected ? (
@@ -109,7 +119,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   initial: { color: colors.paperShade, fontFamily: fonts.display, fontSize: 52, opacity: 0.8 },
-  cardName: { color: colors.ink, fontFamily: fonts.type, fontSize: size.lead },
+  cardName: { color: colors.ink, fontFamily: fonts.type, fontSize: size.lead, textAlign: 'center' },
   cross: {
     position: 'absolute',
     top: 38,

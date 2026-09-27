@@ -5,10 +5,14 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Label, Paper, Rise, Screen, Stamp, Type } from '@/components/ui';
 import { isCorrectGuess } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
+import { fitFontSize, useColumnWidth } from '@/lib/fit';
+import { useBlockBack } from '@/lib/useBlockBack';
 import { ROLE_META, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 export default function Verdict() {
   const { game, players, guess, continueRound } = useGame();
+  const nameWidth = useColumnWidth(48 + 48 + 4);
+  useBlockBack();
   const [text, setText] = useState('');
   const [checked, setChecked] = useState(false);
 
@@ -54,7 +58,10 @@ export default function Verdict() {
       <Rise>
         <Paper tab="Identity confirmed" tilt={-0.7} style={styles.dossier}>
           <Label>The table eliminated</Label>
-          <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit>
+          <Text
+            style={[styles.name, sized(fitFontSize(name, size.giant - 4, nameWidth, { wrap: true }))]}
+            numberOfLines={2}
+          >
             {name}
           </Text>
           <Type style={styles.muted}>who was…</Type>
@@ -132,11 +139,14 @@ export default function Verdict() {
   );
 }
 
+const sized = (fontSize: number) => ({ fontSize, lineHeight: Math.round(fontSize * 1.2) });
+
 const styles = StyleSheet.create({
   dossier: { alignItems: 'center' },
   name: { color: colors.ink, fontFamily: fonts.display, fontSize: size.giant - 4, textAlign: 'center' },
   muted: { color: colors.muted, textAlign: 'center' },
-  stampSlot: { minHeight: 90, justifyContent: 'center' },
+  // Stretch so the stamp's percentage maxWidth resolves against the card, not itself.
+  stampSlot: { minHeight: 90, justifyContent: 'center', alignSelf: 'stretch' },
   input: {
     minHeight: TOUCH + 8,
     borderRadius: radius.sm,
