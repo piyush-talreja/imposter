@@ -13,7 +13,10 @@ export type Sound = keyof typeof SOURCES;
 
 let enabled = true;
 let ready = false;
-const players: Partial<Record<Sound, AudioPlayer>> = {};
+/** A few players per sound, used in turn, so quick repeat presses can overlap. */
+const POOL = 3;
+const players: Partial<Record<Sound, AudioPlayer[]>> = {};
+const next: Partial<Record<Sound, number>> = {};
 
 export function setSoundEnabled(on: boolean) {
   enabled = on;
@@ -28,7 +31,9 @@ export function preloadSounds() {
   ready = true;
   try {
     setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(() => {});
-    for (const sound of Object.keys(SOURCES) as Sound[]) players[sound] = createAudioPlayer(SOURCES[sound]);
+    for (const sound of Object.keys(SOURCES) as Sound[]) {
+      players[sound] = Array.from({ length: POOL }, () => createAudioPlayer(SOURCES[sound]));
+    }
   } catch {
     // Sound is a nice-to-have; never let it break the game.
   }
@@ -38,11 +43,22 @@ export function play(sound: Sound) {
   if (!enabled) return;
   try {
     preloadSounds();
-    const player = players[sound];
-    if (!player) return;
-    // Only rewind when it has played before; a seek before the first play adds delay.
-    if (player.currentTime > 0) player.seekTo(0).catch(() => {});
-    player.play();
+    const pool = players[sound];
+    if (!pool) return;
+    const i = next[sound] ?? 0;
+    next[sound] = (i + 1) % pool.length;
+    const player = pool[i];
+    // A finished player sits at the end of the clip. Playing before the rewind
+    // completes ends immediately (silence on every other press), so wait for it.
+    // A fresh player is already at 0 and plays straight away.
+    if (player.currentTime > 0) {
+      player
+        .seekTo(0)
+        .then(() => player.play())
+        .catch(() => {});
+    } else {
+      player.play();
+    }
   } catch {
     // Ignore: sound must never break the game.
   }

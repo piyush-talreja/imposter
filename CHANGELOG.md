@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - Reveal is now a fade: the cover fades as it peels and the word fades up; the card is no longer tilted or scaled
 
 ### Fixed
+- The reveal sound played only on every other press: it now waits for the rewind to finish before replaying, and uses a small pool of players so rapid presses overlap
 - The word looked blurry while held (phones rasterise text that is being scaled or rotated)
 - Reveal sound lagged: sounds are preloaded at launch and the reveal sound now starts on its first sample
 - "Undercover" wrapped onto two lines on the rules page
