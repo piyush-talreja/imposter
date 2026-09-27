@@ -1,6 +1,6 @@
 # Phase 2: Online private rooms
 
-Status: **planned**. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
+Status: **M1 done**, M2 next. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
 
 ## Goal
 
@@ -121,6 +121,11 @@ Each milestone ships as its own PR, and is playable or testable before the next 
 | 7   | CI: run the database tests with the Supabase CLI in GitHub Actions                                              | S    |
 
 **Done when:** the local stack runs with one command, the app signs in anonymously, and the tests prove secrets are unreadable from a client.
+
+**Shipped.** 24 pgTAP tests, verified by a mutation check (weakening the rules makes the secret and channel tests fail), plus 9 end-to-end checks in `supabase/tests/smoke.mjs`. Notes for later milestones:
+
+- The Edge Function imports the app's `engine.ts` through an import map (`supabase/functions/game-action/deno.json`). Deno needs explicit `.ts` paths, so anything the engine imports at runtime must be mapped there; `engine.ts` imports only types from `words.ts`.
+- Realtime rules live in SQL helpers (`can_receive`, `can_send`), so they can be unit-tested directly.
 
 ### M2: Rooms & lobby
 

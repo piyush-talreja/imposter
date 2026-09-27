@@ -103,6 +103,34 @@ Add rows to `src/features/words/words.ts` as `[word, cousin, 'e' | 'm' | 'h']`. 
 - **UX:** Quit asks for confirmation, dealing shows progress dots, and a "Still in" row shows which roles remain (following the Nielsen heuristics: system status, error prevention, recognition over recall, minimalist design).
 - **Fonts:** Big Shoulders Display (condensed poster headlines) and Outfit (body text). Tokens live in `src/theme/tokens.ts`.
 
+## Online backend (Phase 2, in progress)
+
+Online rooms run on [Supabase](https://supabase.com). Pass-and-play needs none of this. Locally it runs in Docker:
+
+```bash
+pnpm db:start            # start local Supabase (first run downloads the images)
+pnpm db:reset            # apply migrations from supabase/migrations
+pnpm test:db             # security tests: RLS, private channels, no direct writes
+pnpm functions:serve     # run the game-action Edge Function (keep this running)
+pnpm test:online         # end-to-end checks against the local stack, like a phone
+```
+
+Copy `.env.example` to `.env` and fill in the URL and anon key from `pnpm supabase status`.
+
+**Viewing it from your laptop's browser** when the code runs on another machine: forward both the app and the Supabase API:
+
+```bash
+ssh -L 8081:localhost:8081 -L 54321:localhost:54321 <dev-machine>
+```
+
+| Path                              | What it is                                                       |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `supabase/migrations/`            | Tables, row-level security, and Realtime authorization           |
+| `supabase/tests/database/`        | pgTAP security tests (also run in CI)                            |
+| `supabase/functions/game-action/` | Edge Function; imports the app's `engine.ts` through `deno.json` |
+| `supabase/tests/smoke.mjs`        | End-to-end checks: sign-in, function, secrets, private channels  |
+| `src/features/online/client.ts`   | App-side Supabase client with anonymous sign-in                  |
+
 ## Roadmap
 
 - **Phase 2: online private rooms.** Host a room, share a code, and play on your own phones, together or apart. See the plan in [docs/phase-2-online.md](docs/phase-2-online.md).

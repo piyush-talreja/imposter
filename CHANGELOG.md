@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added
+
+- Phase 2, M1: online backend foundation on Supabase. Local stack, tables with row-level security (members read their room; nobody reads game secrets; no direct client writes), Realtime authorization for private `room:` and `player:` channels, anonymous sign-in, and a `game-action` Edge Function that runs the shared game engine. Covered by 24 database security tests (in CI) and end-to-end smoke checks
+
 ### Changed
 
 - New tagline: "Someone here is faking it."
