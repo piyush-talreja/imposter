@@ -20,7 +20,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { tap, thud } from '@/lib/haptics';
-import { ACCENTS, OUTLINE, SHADOW, TOUCH, colors, fonts, onColor, radius, size, space } from '@/theme/tokens';
+import { type Role } from '@/features/game/engine';
+import {
+  ACCENTS,
+  OUTLINE,
+  ROLE_META,
+  SHADOW,
+  TOUCH,
+  colors,
+  fonts,
+  onColor,
+  radius,
+  size,
+  space,
+} from '@/theme/tokens';
 
 export const NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -371,7 +384,6 @@ export function Body({ children, style }: { children: ReactNode; style?: StylePr
  */
 export function Sticker({
   text,
-  emoji,
   color,
   angle = -6,
   delay = 150,
@@ -379,7 +391,6 @@ export function Sticker({
   style,
 }: {
   text: string;
-  emoji?: string;
   color: string;
   angle?: number;
   delay?: number;
@@ -388,7 +399,7 @@ export function Sticker({
 }) {
   const [t] = useState(() => new Animated.Value(0));
   // Sits inside a Card on the screen column: screen + card padding, borders, shadow, own padding.
-  const avail = useColumnWidth(170) - (emoji ? fontSize * 1.2 : 0);
+  const avail = useColumnWidth(170);
   const fs = fitFontSize(text, fontSize, avail, { letterSpacing: 1 });
   useEffect(() => {
     const id = setTimeout(thud, delay + 120);
@@ -421,7 +432,6 @@ export function Sticker({
         style,
       ]}
     >
-      {emoji ? <Text style={{ fontSize: fs * 0.9 }}>{emoji}</Text> : null}
       <Text
         style={[styles.stickerText, { fontSize: fs, lineHeight: fs * 1.25 }, { color: onColor(color) }]}
         numberOfLines={1}
@@ -430,6 +440,25 @@ export function Sticker({
       </Text>
     </Animated.View>
   );
+}
+
+/**
+ * Role symbol: a full dot (has the word), a half dot (has a similar word) or an
+ * empty ring (has no word). Shape carries the meaning, not just colour.
+ */
+export function RoleMark({ role, size: d = 28 }: { role: Role; size?: number }) {
+  const color = ROLE_META[role].color;
+  const base = { width: d, height: d, borderRadius: d / 2, borderWidth: 2.5, overflow: 'hidden' as const };
+  if (role === 'villager')
+    return <View style={[base, { backgroundColor: color, borderColor: colors.outline }]} />;
+  if (role === 'undercover') {
+    return (
+      <View style={[base, { backgroundColor: colors.raised, borderColor: colors.outline }]}>
+        <View style={{ width: '50%', height: '100%', backgroundColor: color }} />
+      </View>
+    );
+  }
+  return <View style={[base, { borderColor: color, borderWidth: Math.max(3, d / 7) }]} />;
 }
 
 /** A burst of confetti flying out from the centre of its parent. Decorative only. */

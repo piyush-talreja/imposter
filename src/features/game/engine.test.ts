@@ -2,14 +2,16 @@ import { WORDS, type WordEntry } from '@/features/words/words';
 
 import {
   DEFAULT_SETTINGS,
+  POINTS,
   alive,
   assignRoles,
   cardFor,
-  checkWinner,
   clueOrder,
   effectiveRoles,
   eliminate,
+  inBonusRound,
   isCorrectGuess,
+  maxImposters,
   maxInfiltrators,
   maxUndercover,
   newGame,
@@ -19,6 +21,7 @@ import {
   resolveGuess,
   scoreGame,
   suggestRoles,
+  totalPoints,
   wordPool,
   type Game,
   type Player,
@@ -55,8 +58,12 @@ const baseGame = (overrides: Partial<Game> = {}): Game => ({
   pendingGuess: null,
   lastGuess: null,
   winner: null,
+  over: false,
   ...overrides,
 });
+
+const points = (g: Game) =>
+  Object.fromEntries(Object.entries(scoreGame(g)).map(([id, lines]) => [id, totalPoints(lines)]));
 
 describe('role counts', () => {
   const manual = (undercover: number, imposter: number) => ({
@@ -67,34 +74,43 @@ describe('role counts', () => {
 
   it('suggests sensible splits by group size', () => {
     expect(suggestRoles(3)).toEqual({ undercover: 0, imposter: 1 });
-    expect(suggestRoles(4)).toEqual({ undercover: 0, imposter: 1 });
     expect(suggestRoles(5)).toEqual({ undercover: 1, imposter: 1 });
     expect(suggestRoles(8)).toEqual({ undercover: 2, imposter: 1 });
+    expect(suggestRoles(11)).toEqual({ undercover: 2, imposter: 2 });
   });
 
-  it('always has at least one imposter', () => {
+  it('suggestions always respect the caps', () => {
+    for (let n = 3; n <= 20; n++) {
+      const s = suggestRoles(n);
+      expect(effectiveRoles({ ...DEFAULT_SETTINGS, autoRoles: true }, n)).toEqual(s);
+    }
+  });
+
+  it('caps imposters by group size', () => {
+    expect([3, 5, 6, 9, 10, 20].map(maxImposters)).toEqual([1, 1, 2, 2, 3, 3]);
+    expect(effectiveRoles(manual(0, 5), 8).imposter).toBe(2);
+  });
+
+  it('caps undercovers by group size', () => {
+    expect(maxUndercover(3, 1)).toBe(0);
+    expect(maxUndercover(4, 1)).toBe(1);
+    expect(maxUndercover(6, 1)).toBe(1);
+    expect(maxUndercover(9, 1)).toBe(2);
+    expect(maxUndercover(20, 1)).toBe(3);
+    expect(effectiveRoles(manual(9, 1), 6)).toEqual({ undercover: 1, imposter: 1 });
+  });
+
+  it('always has at least one imposter; undercover is optional', () => {
     expect(effectiveRoles(manual(0, 0), 5)).toEqual({ undercover: 0, imposter: 1 });
-    expect(effectiveRoles(manual(2, 0), 6)).toEqual({ undercover: 1, imposter: 1 });
-  });
-
-  it('undercover is optional', () => {
     expect(effectiveRoles(manual(0, 1), 8)).toEqual({ undercover: 0, imposter: 1 });
   });
 
-  it('3 players: imposter only, no undercover', () => {
-    expect(maxUndercover(3, 1)).toBe(0);
-    expect(effectiveRoles(manual(1, 1), 3)).toEqual({ undercover: 0, imposter: 1 });
-  });
-
-  it('4 players may add one undercover', () => {
-    expect(effectiveRoles(manual(1, 1), 4)).toEqual({ undercover: 1, imposter: 1 });
-    expect(effectiveRoles(manual(3, 1), 4)).toEqual({ undercover: 1, imposter: 1 });
-  });
-
-  it('keeps villagers in the majority from 5 players', () => {
-    expect(maxInfiltrators(5)).toBe(2);
-    expect(maxInfiltrators(6)).toBe(2);
-    expect(effectiveRoles(manual(5, 5), 6)).toEqual({ undercover: 0, imposter: 2 });
+  it('villagers are never outnumbered at the start', () => {
+    for (let n = 3; n <= 20; n++) {
+      const r = effectiveRoles(manual(9, 9), n);
+      expect(r.undercover + r.imposter).toBeLessThanOrEqual(maxInfiltrators(n));
+      expect(n - r.undercover - r.imposter).toBeGreaterThanOrEqual(r.undercover + r.imposter);
+    }
   });
 });
 
@@ -126,7 +142,7 @@ describe('assigning roles', () => {
   it('favours players who have been infiltrators less often', () => {
     const history = { ana: 50, ben: 50, cy: 50, dee: 50, eli: 50 };
     let fay = 0;
-    for (let i = 0; i < 500; i++)
+    for (let i = 0; i < 500; i++) {
       if (
         pickWeighted(
           players.map((p) => p.id),
@@ -136,6 +152,7 @@ describe('assigning roles', () => {
         )[0] === 'fay'
       )
         fay++;
+    }
     expect(fay).toBeGreaterThan(400);
   });
 
@@ -174,55 +191,87 @@ describe('cards', () => {
   });
 });
 
-describe('elimination flow', () => {
-  it('eliminating a villager continues the game', () => {
+describe('stage 1: find the imposter', () => {
+  it('voting out a villager continues the game', () => {
     const g = eliminate(baseGame(), 'ana');
     expect(g.winner).toBeNull();
     expect(alive(g)).not.toContain('ana');
     expect(nextRound(g).round).toBe(2);
   });
 
-  it('villagers win once every infiltrator is out', () => {
-    let g = eliminate(baseGame(), 'eli');
-    g = eliminate(g, 'fay');
-    expect(g.pendingGuess).toBe('fay');
-    g = resolveGuess(g, 'Calzone');
-    expect(g.lastGuess?.correct).toBe(false);
-    expect(g.winner).toBe('villagers');
-  });
-
-  it('an eliminated imposter who names the word wins outright', () => {
-    const g = resolveGuess(eliminate(baseGame(), 'fay'), '  pizzas! ');
-    expect(g.winner).toBe('imposter-guess');
-    expect(scoreGame(g)).toEqual({ fay: 6 });
-  });
-
-  it('the group can override a near-miss guess as correct', () => {
-    const g = resolveGuess(eliminate(baseGame(), 'fay'), 'pizza pie', true);
-    expect(g.winner).toBe('imposter-guess');
-  });
-
-  it('infiltrators win when only one villager is left', () => {
-    let g = baseGame();
-    for (const id of ['ana', 'ben', 'cy']) g = eliminate(g, id);
-    expect(g.winner).toBe('infiltrators');
-    expect(scoreGame(g)).toEqual({ eli: 5, fay: 6 });
-  });
-
-  it('ignores eliminations while a guess is pending or after the game ends', () => {
+  it('a caught imposter must guess before anything else happens', () => {
     const pending = eliminate(baseGame(), 'fay');
+    expect(pending.pendingGuess).toBe('fay');
     expect(eliminate(pending, 'ana')).toBe(pending);
-    const over = { ...baseGame(), winner: 'villagers' as const };
-    expect(eliminate(over, 'ana')).toBe(over);
   });
 
-  it('checkWinner on a fresh game is null', () => {
-    expect(checkWinner(baseGame())).toBeNull();
+  it('a correct guess wins outright for the imposter', () => {
+    const g = resolveGuess(eliminate(baseGame(), 'fay'), '  pizzas! ');
+    expect(g.winner).toBe('imposters');
+    expect(g.over).toBe(true);
+    // The undercover was never caught, so they still get their bonus.
+    expect(points(g)).toEqual({ fay: POINTS.imposterWins, eli: POINTS.undercoverUndetected });
   });
 
-  it('villager win scores every villager, eliminated or not', () => {
-    const g = { ...baseGame(), eliminated: ['ana', 'eli', 'fay'], winner: 'villagers' as const };
-    expect(scoreGame(g)).toEqual({ ana: 2, ben: 2, cy: 2, dee: 2 });
+  it('the table can accept a near-miss guess', () => {
+    expect(resolveGuess(eliminate(baseGame(), 'fay'), 'pizza pie', true).winner).toBe('imposters');
+  });
+
+  it('the imposter wins by surviving until no longer outnumbered', () => {
+    const roles: Record<string, Role> = { ana: 'villager', ben: 'villager', fay: 'imposter' };
+    const g = eliminate(baseGame({ roles, order: ['ana', 'ben', 'fay'] }), 'ana');
+    expect(g.winner).toBe('imposters');
+    expect(g.over).toBe(true);
+    expect(points(g)).toEqual({ fay: POINTS.imposterWins });
+  });
+
+  it('an undercover voted out early is a caught undercover', () => {
+    let g = eliminate(baseGame(), 'eli');
+    expect(g.winner).toBeNull();
+    g = resolveGuess(eliminate(g, 'fay'), 'Calzone');
+    // Imposter caught and no undercover left: game over, no bonus round.
+    expect(g.winner).toBe('villagers');
+    expect(g.over).toBe(true);
+    expect(points(g).ana).toBe(POINTS.imposterCaught + POINTS.undercoverCaught);
+    expect(points(g).eli).toBe(POINTS.imposterCaught);
+    expect(points(g).fay).toBeUndefined();
+  });
+});
+
+describe('stage 2: the undercover bonus round', () => {
+  const imposterCaught = () => resolveGuess(eliminate(baseGame(), 'fay'), 'Pasta');
+
+  it('starts when the imposter is caught and an undercover is still in', () => {
+    const g = imposterCaught();
+    expect(g.winner).toBe('villagers');
+    expect(g.over).toBe(false);
+    expect(inBonusRound(g)).toBe(true);
+    expect(nextRound(g).round).toBe(2);
+  });
+
+  it('villagers earn the bonus for catching the undercover', () => {
+    const g = eliminate(imposterCaught(), 'eli');
+    expect(g.over).toBe(true);
+    expect(points(g)).toEqual({
+      ana: POINTS.imposterCaught + POINTS.undercoverCaught,
+      ben: POINTS.imposterCaught + POINTS.undercoverCaught,
+      cy: POINTS.imposterCaught + POINTS.undercoverCaught,
+      dee: POINTS.imposterCaught + POINTS.undercoverCaught,
+      eli: POINTS.imposterCaught,
+    });
+  });
+
+  it('an undercover who survives to the last villager earns the bonus', () => {
+    let g = imposterCaught();
+    for (const id of ['ana', 'ben', 'cy']) g = eliminate(g, id);
+    expect(g.over).toBe(true);
+    expect(g.winner).toBe('villagers');
+    expect(points(g).eli).toBe(POINTS.imposterCaught + POINTS.undercoverUndetected);
+    expect(points(g).dee).toBe(POINTS.imposterCaught);
+  });
+
+  it('scores are only awarded once the game is over', () => {
+    expect(scoreGame(imposterCaught())).toEqual({});
   });
 });
 

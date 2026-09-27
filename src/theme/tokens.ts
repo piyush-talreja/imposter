@@ -43,9 +43,9 @@ export const SHADOW = 5;
 export const TOUCH = 48;
 
 export const ROLE_META = {
-  villager: { label: 'Villager', emoji: '🏡', color: cyan, blurb: 'You’ve got the word. Spot who doesn’t.' },
-  undercover: { label: 'Undercover', emoji: '🕶️', color: amber, blurb: 'Your word is close… but not quite.' },
-  imposter: { label: 'Imposter', emoji: '🎭', color: pink, blurb: 'No word at all. Fake it.' },
+  villager: { label: 'Villager', color: cyan, blurb: 'Has the word' },
+  undercover: { label: 'Undercover', color: amber, blurb: 'Has a similar word' },
+  imposter: { label: 'Imposter', color: pink, blurb: 'Has no word' },
 } as const;
 
 /** Readable text on an accent fill: dark on the bright cyan/amber, white on pink. */

@@ -1,104 +1,82 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Card, Screen } from '@/components/ui';
+import { Body, Card, RoleMark, Screen } from '@/components/ui';
 import { POINTS } from '@/features/game/engine';
 import { OUTLINE, ROLE_META, colors, fonts, size, space } from '@/theme/tokens';
 
-const STEPS: [string, string][] = [
-  [
-    'Deal',
-    'Pass the phone round. Press and hold the sticker to peek at your word, then let go and pass it on.',
-  ],
-  ['Clue', 'Going round the circle, everyone still in says one word about theirs.'],
-  ['Vote', 'Talk it over, then agree on one player to vote out. Their role is revealed!'],
-  ['Last chance', 'If the Imposter is voted out, they get one guess at the word. If it’s right, they win!'],
-  ['Repeat', 'Keep going round by round until one side wins.'],
+const ROLES = {
+  villager: 'Most players. Everyone shares the word.',
+  undercover: 'Optional, from 4 players. Gets a similar word and doesn’t know it.',
+  imposter: 'At least one per game. Gets no word, and knows it.',
+} as const;
+
+const STEPS = [
+  'Pass the phone round. Hold the card to see your word.',
+  'Everyone still in says one word as a clue.',
+  'Discuss, then vote one player out. Their role is revealed.',
+  'A caught Imposter gets one guess. If it’s right, they win.',
+  'Once the Imposter is caught, a bonus round hunts any Undercover still in.',
 ];
 
-const ROLE_TEXT = {
-  villager: 'Most players. You all share the same secret word.',
-  undercover:
-    'Optional, from 4 players. Gets a word that’s close but different (Pizza → Calzone), and doesn’t know it! Blend in until you figure it out.',
-  imposter:
-    'Every game has at least one. Gets no word, and knows it. Fake it from the clues you hear. If you’re caught, guess the word to steal the win.',
-} as const;
+const SCORING: [string, number][] = [
+  ['Imposter caught: every Villager and Undercover', POINTS.imposterCaught],
+  ['Imposter wins: the Imposter', POINTS.imposterWins],
+  ['Undercover caught: every Villager', POINTS.undercoverCaught],
+  ['Undercover never caught: that Undercover', POINTS.undercoverUndetected],
+];
 
 export default function HowToPlay() {
   return (
-    <Screen kicker="THE RULES" title="How to play">
-      <Card badge="The roles" badgeColor={colors.raised} tilt={-0.5}>
+    <Screen kicker="RULES" title="How to play">
+      <Card badge="Roles" tilt={-0.5}>
         {(['villager', 'undercover', 'imposter'] as const).map((r) => (
-          <View key={r} style={styles.role}>
-            <View style={[styles.roleIcon, { backgroundColor: ROLE_META[r].color }]}>
-              <Text style={{ fontSize: 22 }}>{ROLE_META[r].emoji}</Text>
-            </View>
+          <View key={r} style={styles.row}>
+            <RoleMark role={r} />
             <View style={{ flex: 1 }}>
               <Text style={styles.roleName}>{ROLE_META[r].label}</Text>
-              <Body style={styles.muted}>{ROLE_TEXT[r]}</Body>
+              <Body style={styles.muted}>{ROLES[r]}</Body>
             </View>
           </View>
         ))}
       </Card>
 
-      <Card badge="Each round" badgeColor={colors.raised} tilt={0.4}>
-        {STEPS.map(([title, text], i) => (
-          <View key={title} style={styles.step}>
-            <View style={[styles.num, { backgroundColor: colors.pink }]}>
-              <Text style={[styles.numText, { color: colors.white }]}>{i + 1}</Text>
+      <Card badge="Each round" tilt={0.4}>
+        {STEPS.map((text, i) => (
+          <View key={text} style={styles.row}>
+            <View style={styles.num}>
+              <Text style={styles.numText}>{i + 1}</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.stepTitle}>{title}</Text>
-              <Body style={styles.muted}>{text}</Body>
-            </View>
+            <Body style={[styles.muted, { flex: 1 }]}>{text}</Body>
           </View>
         ))}
       </Card>
 
-      <Card badge="Who wins?" badgeColor={colors.pink} tilt={-0.3}>
-        <Body>
-          🏡 <Text style={styles.strong}>Villagers win</Text> when every Undercover and Imposter is out.
-        </Body>
-        <Body>
-          🕶️ <Text style={styles.strong}>Fakers win</Text> (Undercover and Imposter) when only one villager is
-          left.
-        </Body>
-        <Body>
-          🎭 <Text style={styles.strong}>The Imposter wins alone</Text> by guessing the word after being voted
-          out.
-        </Body>
-        <Body style={styles.muted}>
-          Points go to the whole winning side: Villager {POINTS.villager} · Undercover {POINTS.undercover} ·
-          Imposter {POINTS.imposter}.
-        </Body>
+      <Card badge="Points" tilt={-0.3}>
+        {SCORING.map(([text, pts]) => (
+          <View key={text} style={styles.row}>
+            <Text style={styles.pts}>+{pts}</Text>
+            <Body style={[styles.muted, { flex: 1 }]}>{text}</Body>
+          </View>
+        ))}
       </Card>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  role: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
-  roleIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: OUTLINE - 0.5,
-    borderColor: colors.outline,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  row: { flexDirection: 'row', gap: space.md, alignItems: 'center' },
   roleName: { fontFamily: fonts.display, fontSize: size.lead + 2, color: colors.text },
   muted: { color: colors.textSoft, fontSize: size.small + 1, lineHeight: 21 },
-  step: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   num: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: OUTLINE - 0.5,
     borderColor: colors.outline,
+    backgroundColor: colors.pink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numText: { fontFamily: fonts.display, fontSize: size.lead, lineHeight: 26 },
-  stepTitle: { fontFamily: fonts.bodyBold, fontSize: size.body + 1, color: colors.text },
-  strong: { fontFamily: fonts.bodyBold },
+  numText: { fontFamily: fonts.display, fontSize: size.lead, lineHeight: 24, color: colors.white },
+  pts: { width: 32, textAlign: 'center', fontFamily: fonts.display, fontSize: size.lead, color: colors.pink },
 });

@@ -2,8 +2,8 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, Pop, Screen } from '@/components/ui';
-import { alive } from '@/features/game/engine';
+import { Button, Pop, Screen } from '@/components/ui';
+import { alive, inBonusRound } from '@/features/game/engine';
 import { playerName, useGame } from '@/features/game/store';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { useBlockBack } from '@/lib/useBlockBack';
@@ -29,22 +29,19 @@ export default function VoteOut() {
 
   return (
     <Screen
-      kicker={`ROUND ${game.round} · THE VOTE`}
-      title="Who's out?"
+      kicker={inBonusRound(game) ? `BONUS ROUND · ${game.round}` : `ROUND ${game.round}`}
+      title={inBonusRound(game) ? 'Who’s the Undercover?' : 'Vote out'}
       backLabel="Quit"
       onBack={() => router.dismissTo('/')}
       footer={
         <Button
-          label={choice ? 'Vote them out!' : 'Tap a player'}
+          label={choice ? 'Vote out' : 'Pick one'}
           accessibilityHint={choice ? `Votes out ${playerName(players, choice)}` : undefined}
           onPress={confirm}
           disabled={!choice}
         />
       }
     >
-      <Body style={styles.lead}>
-        Agree together on one player. Then we&apos;ll find out who they really were!
-      </Body>
       <View style={styles.grid}>
         {inGame.map((id, i) => {
           const selected = choice === id;
@@ -83,7 +80,6 @@ export default function VoteOut() {
                   >
                     {playerName(players, id)}
                   </Text>
-                  {selected ? <Text style={styles.pointer}>👉 out?</Text> : null}
                 </View>
               </Pressable>
             </Pop>
@@ -95,7 +91,6 @@ export default function VoteOut() {
 }
 
 const styles = StyleSheet.create({
-  lead: { color: colors.textSoft },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
   cell: { width: '46%', flexGrow: 1 },
   cellInner: { marginRight: SHADOW, marginBottom: SHADOW },
@@ -129,5 +124,4 @@ const styles = StyleSheet.create({
   },
   initial: { fontFamily: fonts.display, fontSize: 34, lineHeight: 42 },
   tileName: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.body, textAlign: 'center' },
-  pointer: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: size.small },
 });

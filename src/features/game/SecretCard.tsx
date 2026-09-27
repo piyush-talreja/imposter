@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Label, NATIVE_DRIVER } from '@/components/ui';
+import { Card, Label, NATIVE_DRIVER, RoleMark } from '@/components/ui';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { tap } from '@/lib/haptics';
 import { OUTLINE, colors, fonts, radius, size, space } from '@/theme/tokens';
@@ -20,15 +20,7 @@ const DOTS = Array.from({ length: 18 }, (_, i) => ({
  * peels the sticker back from its corner; letting go smooths it back down, so
  * a glance over the shoulder never catches it.
  */
-export function SecretCard({
-  name,
-  card,
-  onSeen,
-}: {
-  name: string;
-  card: SecretCardData;
-  onSeen: () => void;
-}) {
+export function SecretCard({ card, onSeen }: { card: SecretCardData; onSeen: () => void }) {
   const [peel] = useState(() => new Animated.Value(0));
   const [wiggle] = useState(() => new Animated.Value(0));
   const [holding, setHolding] = useState(false);
@@ -73,7 +65,7 @@ export function SecretCard({
   };
 
   return (
-    <Card badge={`Only for ${name}`} badgeColor={colors.pink} tilt={-1} style={{ padding: 0 }}>
+    <Card tilt={-1} style={{ padding: 0 }}>
       <Pressable
         onPressIn={press}
         onPressOut={release}
@@ -90,24 +82,26 @@ export function SecretCard({
         <View style={styles.secret}>
           {card.kind === 'word' ? (
             <>
-              <Label>your secret word</Label>
+              <Label>Your word</Label>
               <Text style={[styles.word, wordSize(card.word)]} numberOfLines={3} selectable={false}>
                 {card.word}
               </Text>
-              <Text style={styles.note}>Remember it. Don&apos;t say it!</Text>
             </>
           ) : (
             <>
-              <Text style={styles.mask}>🎭</Text>
-              <Text style={[styles.word, wordSize('Imposter!'), { color: colors.pink }]} selectable={false}>
-                Imposter!
+              <RoleMark role="imposter" size={44} />
+              <Text style={[styles.word, wordSize('Imposter'), { color: colors.pink }]} selectable={false}>
+                Imposter
               </Text>
-              {card.category ? (
-                <Text style={styles.note}>
-                  Psst, the category is <Text style={styles.noteStrong}>{card.category}</Text>
-                </Text>
-              ) : null}
-              <Text style={styles.note}>You have no word. Listen closely and fake it.</Text>
+              <Text style={styles.note}>
+                {card.category ? (
+                  <>
+                    No word · Topic: <Text style={styles.noteStrong}>{card.category}</Text>
+                  </>
+                ) : (
+                  'No word'
+                )}
+              </Text>
             </>
           )}
         </View>
@@ -136,9 +130,8 @@ export function SecretCard({
             />
           ))}
           <View style={styles.coverLabel}>
-            <Text style={styles.coverEmoji}>👆</Text>
-            <Text style={styles.coverText}>Hold to peel</Text>
-            <Text style={styles.coverSub}>let go to hide</Text>
+            <View style={styles.thumb} />
+            <Text style={styles.coverText}>Hold to see</Text>
           </View>
           <Animated.View
             style={[
@@ -173,7 +166,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
   },
-  mask: { fontSize: 44 },
   note: { color: colors.textSoft, fontFamily: fonts.body, textAlign: 'center', fontSize: size.body - 1 },
   noteStrong: { color: colors.text, fontFamily: fonts.bodyBold },
   cover: {
@@ -194,9 +186,16 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     transform: [{ rotate: '-4deg' }],
   },
-  coverEmoji: { fontSize: 34 },
+  // Target ring where the thumb goes.
+  thumb: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 3,
+    borderColor: colors.pink,
+    marginBottom: space.xs,
+  },
   coverText: { fontFamily: fonts.display, fontSize: size.title, color: colors.text },
-  coverSub: { fontFamily: fonts.bodyBold, fontSize: size.small, color: colors.textSoft },
   // Curled-up corner hinting that the sticker peels.
   corner: {
     position: 'absolute',

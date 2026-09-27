@@ -2,37 +2,37 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, Pop, Screen } from '@/components/ui';
+import { Button, Label, Pop, Screen } from '@/components/ui';
 import { cardFor } from '@/features/game/engine';
 import { SecretCard } from '@/features/game/SecretCard';
 import { useGame } from '@/features/game/store';
 import { categoryName } from '@/features/words/words';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { useBlockBack } from '@/lib/useBlockBack';
-import { colors, fonts, onColor, size, space } from '@/theme/tokens';
+import { colors, fonts, size, space } from '@/theme/tokens';
 
+// One screen per player: their name, and a covered card they hold to peek at.
+// The card stays covered until held, so handing the phone over is safe.
 export default function Deal() {
   const { game, players, settings, markDealt } = useGame();
   const [index, setIndex] = useState(0);
-  const [claimed, setClaimed] = useState(false);
   const [seen, setSeen] = useState(false);
-  // Screen padding + tag padding + borders.
-  const nameWidth = useColumnWidth(48 + 64 + 8);
+  const nameWidth = useColumnWidth(48);
   useBlockBack();
 
   if (!game) return <Redirect href="/" />;
   const player = players[index];
-  const isLast = index === players.length - 1;
-  const color = colors.pink;
+  const next = players[index + 1];
 
-  const next = () => {
-    setClaimed(false);
+  const advance = () => {
     setSeen(false);
-    if (isLast) {
+    if (!next) {
       markDealt();
       router.replace('/clues');
     } else setIndex(index + 1);
   };
+
+  const fontSize = fitFontSize(player.name, size.giant, nameWidth);
 
   return (
     <Screen
@@ -41,87 +41,31 @@ export default function Deal() {
       onBack={() => router.dismissTo('/')}
       scroll={false}
       footer={
-        claimed ? (
-          <Button
-            label={isLast ? "Let's start!" : 'Got it, pass it on'}
-            onPress={next}
-            disabled={!seen}
-            accessibilityHint={seen ? undefined : 'Hold the card to see your word first'}
-          />
-        ) : (
-          <Button
-            label="That's me!"
-            accessibilityHint={`Only ${player.name} should tap this`}
-            onPress={() => setClaimed(true)}
-          />
-        )
+        <Button
+          label={next ? `Pass to ${next.name}` : 'Start'}
+          onPress={advance}
+          disabled={!seen}
+          accessibilityHint={seen ? undefined : 'Hold the card to see your word first'}
+        />
       }
     >
-      {!claimed ? (
-        <Pop key={`pass-${index}`} style={styles.center}>
-          <Text style={styles.emoji}>📱</Text>
-          <Body style={styles.muted}>Pass the phone to</Body>
-          <View
-            style={[
-              styles.nameTag,
-              { backgroundColor: color, transform: [{ rotate: index % 2 ? '3deg' : '-3deg' }] },
-            ]}
-          >
-            <Text
-              style={[
-                styles.name,
-                { color: onColor(color) },
-                sized(fitFontSize(player.name, size.giant, nameWidth, { wrap: true })),
-              ]}
-              numberOfLines={2}
-            >
-              {player.name}
-            </Text>
-          </View>
-          <Body style={styles.muted}>No peeking, everyone else! 🙈</Body>
-        </Pop>
-      ) : (
-        <Pop key={`card-${index}`} style={styles.center}>
-          <View style={{ width: '100%' }}>
-            <SecretCard
-              name={player.name}
-              card={cardFor(game, player.id, settings, categoryName)}
-              onSeen={() => setSeen(true)}
-            />
-          </View>
-          <Body style={styles.muted}>
-            {seen ? 'Got it? Pass the phone on.' : 'Press and hold the sticker.'}
-          </Body>
-        </Pop>
-      )}
+      <Pop key={player.id} style={styles.center}>
+        <View style={styles.heading}>
+          <Label>For</Label>
+          <Text style={[styles.name, { fontSize, lineHeight: Math.round(fontSize * 1.1) }]} numberOfLines={1}>
+            {player.name}
+          </Text>
+        </View>
+        <View style={{ width: '100%' }}>
+          <SecretCard card={cardFor(game, player.id, settings, categoryName)} onSeen={() => setSeen(true)} />
+        </View>
+      </Pop>
     </Screen>
   );
 }
 
-const sized = (fontSize: number) => ({ fontSize, lineHeight: Math.round(fontSize * 1.22) });
-
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.lg },
-  emoji: { fontSize: 56 },
-  muted: { color: colors.textSoft, textAlign: 'center' },
-  nameTag: {
-    maxWidth: '100%',
-    borderWidth: 4,
-    borderColor: colors.outline,
-    borderRadius: 32,
-    paddingHorizontal: space.xl,
-    paddingVertical: space.sm,
-    shadowColor: colors.outline,
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    shadowOffset: { width: 6, height: 6 },
-    elevation: 6,
-  },
-  name: {
-    color: colors.white,
-    fontFamily: fonts.display,
-    fontSize: size.giant,
-    lineHeight: size.giant + 14,
-    textAlign: 'center',
-  },
+  center: { flex: 1, justifyContent: 'center', gap: space.lg },
+  heading: { alignItems: 'center' },
+  name: { color: colors.text, fontFamily: fonts.display, textAlign: 'center' },
 });

@@ -1,42 +1,33 @@
 import { Redirect, router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Body, Button, Card, Confetti, Label, Pop, Screen, Sticker } from '@/components/ui';
-import { type Winner } from '@/features/game/engine';
-import { playerName, useGame } from '@/features/game/store';
+import { Button, Card, Confetti, Label, Pop, RoleMark, Screen, Sticker } from '@/components/ui';
+import { totalPoints } from '@/features/game/engine';
+import { useGame } from '@/features/game/store';
 import { categoryName } from '@/features/words/words';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { useBlockBack } from '@/lib/useBlockBack';
-import { OUTLINE, ROLE_META, colors, fonts, radius, size, space } from '@/theme/tokens';
-
-const HEADLINE: Record<Winner, { text: string; emoji: string; color: string; line: string }> = {
-  villagers: { text: 'Villagers win!', emoji: '🏡', color: colors.cyan, line: 'Every faker was found out.' },
-  infiltrators: {
-    text: 'Fakers win!',
-    emoji: '🕶️',
-    color: colors.amber,
-    line: 'Only one villager was left standing.',
-  },
-  'imposter-guess': {
-    text: 'Imposter wins!',
-    emoji: '🎭',
-    color: colors.pink,
-    line: 'Caught, but guessed the word!',
-  },
-};
+import { ROLE_META, colors, fonts, radius, size, space } from '@/theme/tokens';
 
 export default function Results() {
   const { game, players, settings, scores, lastPoints, startGame } = useGame();
   // Two boxes side by side inside a card.
   const boxWidth = useColumnWidth(48 + 48 + 12 + 8) / 2 - 24;
   useBlockBack();
-  if (!game?.winner) return <Redirect href="/" />;
-  const head = HEADLINE[game.winner];
-  const fit = (word: string) => {
-    const fontSize = fitFontSize(word, size.title - 4, boxWidth, { wrap: true });
-    return { fontSize, lineHeight: fontSize + 8 };
-  };
+  if (!game?.over) return <Redirect href="/" />;
+
+  const imposterWon = game.winner === 'imposters';
+  const headline = imposterWon
+    ? { text: game.lastGuess?.correct ? 'Imposter guessed it' : 'Imposter wins', color: colors.pink }
+    : { text: 'Imposter caught', color: colors.cyan };
+  const undercovers = Object.keys(game.roles).filter((id) => game.roles[id] === 'undercover');
+  const caught = undercovers.filter((id) => game.eliminated.includes(id)).length;
   const ranked = [...players].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0));
+
+  const fit = (word: string) => {
+    const fontSize = fitFontSize(word, size.title, boxWidth, { wrap: true });
+    return { fontSize, lineHeight: fontSize + 6 };
+  };
 
   return (
     <Screen
@@ -45,7 +36,7 @@ export default function Results() {
       footer={
         <>
           <Button
-            label="Play again!"
+            label="Play again"
             onPress={() => {
               startGame();
               router.replace('/deal');
@@ -57,65 +48,62 @@ export default function Results() {
       }
     >
       <View style={styles.hero}>
-        <Confetti delay={350} count={30} />
-        <Sticker
-          text={head.text}
-          emoji={head.emoji}
-          color={head.color}
-          angle={-5}
-          delay={200}
-          fontSize={32}
-        />
-        <Pop delay={450}>
-          <Body style={styles.center}>{head.line}</Body>
-        </Pop>
+        <Confetti delay={350} count={24} />
+        <Sticker text={headline.text} color={headline.color} angle={-4} delay={200} fontSize={34} />
+        {undercovers.length > 0 ? (
+          <Pop delay={450}>
+            <Label color={colors.amber}>
+              {caught === undercovers.length
+                ? `Undercover caught`
+                : caught > 0
+                  ? `${caught} of ${undercovers.length} Undercovers caught`
+                  : 'Undercover got away'}
+            </Label>
+          </Pop>
+        ) : null}
       </View>
 
       <Pop delay={600}>
-        <Card badge="The words" badgeColor={colors.raised} tilt={-0.6}>
+        <Card tilt={-0.6}>
           <View style={styles.words}>
             <View style={[styles.wordBox, { backgroundColor: colors.cyan }]}>
-              <Label color={colors.outline}>🏡 Villagers</Label>
-              <Text style={[styles.word, fit(game.word), { color: colors.outline }]}>{game.word}</Text>
+              <Label color={colors.outline}>Villagers</Label>
+              <Text style={[styles.word, fit(game.word)]}>{game.word}</Text>
             </View>
-            <View style={[styles.wordBox, { backgroundColor: colors.amber }]}>
-              <Label color={colors.outline}>🕶️ Undercover</Label>
-              <Text style={[styles.word, fit(game.cousin), { color: colors.outline }]}>{game.cousin}</Text>
-            </View>
+            {undercovers.length > 0 ? (
+              <View style={[styles.wordBox, { backgroundColor: colors.amber }]}>
+                <Label color={colors.outline}>Undercover</Label>
+                <Text style={[styles.word, fit(game.cousin)]}>{game.cousin}</Text>
+              </View>
+            ) : null}
           </View>
-          <Body style={styles.meta}>
-            Topic: {categoryName(game.categoryId)} · {game.round} round{game.round === 1 ? '' : 's'}
-          </Body>
+          <Label>
+            {categoryName(game.categoryId)} · {game.round} round{game.round === 1 ? '' : 's'}
+          </Label>
         </Card>
       </Pop>
 
       <Pop delay={750}>
-        <Card badge={settings.scoring ? 'Scoreboard' : 'Who was who'} badgeColor={colors.pink} tilt={0.4}>
+        <Card badge={settings.scoring ? 'Scores' : 'Roles'} tilt={0.4}>
           {(settings.scoring ? ranked : players).map((p, i) => {
             const role = game.roles[p.id];
-            const gained = lastPoints?.[p.id];
+            const lines = lastPoints?.[p.id] ?? [];
+            const gained = totalPoints(lines);
             return (
               <View key={p.id} style={styles.row}>
-                {settings.scoring ? (
-                  <Text style={styles.rank}>{i === 0 && (scores[p.id] ?? 0) > 0 ? '👑' : i + 1}</Text>
-                ) : null}
-                <View style={[styles.roleDot, { backgroundColor: ROLE_META[role].color }]}>
-                  <Text style={{ fontSize: 16 }}>{ROLE_META[role].emoji}</Text>
-                </View>
+                {settings.scoring ? <Text style={styles.rank}>{i + 1}</Text> : null}
+                <RoleMark role={role} size={22} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.rowName, game.eliminated.includes(p.id) && styles.out]}>{p.name}</Text>
-                  <Text style={styles.roleName}>{ROLE_META[role].label}</Text>
+                  <Text style={styles.detail}>
+                    {[ROLE_META[role].label, ...lines.map((l) => l.reason)].join(' · ')}
+                  </Text>
                 </View>
-                {gained ? <Text style={styles.gained}>+{gained}</Text> : null}
+                {settings.scoring && gained ? <Text style={styles.gained}>+{gained}</Text> : null}
                 {settings.scoring ? <Text style={styles.total}>{scores[p.id] ?? 0}</Text> : null}
               </View>
             );
           })}
-          {game.lastGuess ? (
-            <Body style={styles.meta}>
-              {playerName(players, game.lastGuess.by)}&apos;s guess: “{game.lastGuess.text.trim()}”
-            </Body>
-          ) : null}
         </Card>
       </Pop>
     </Screen>
@@ -124,7 +112,6 @@ export default function Results() {
 
 const styles = StyleSheet.create({
   hero: { alignItems: 'center', gap: space.md, paddingVertical: space.lg },
-  center: { textAlign: 'center' },
   words: { flexDirection: 'row', gap: space.sm },
   wordBox: {
     flex: 1,
@@ -135,34 +122,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: space.sm,
   },
-  word: {
-    color: colors.text,
-    fontFamily: fonts.display,
-    fontSize: size.title - 4,
-    lineHeight: size.title + 6,
-    textAlign: 'center',
-  },
-  meta: { color: colors.textSoft, textAlign: 'center', fontSize: size.small + 1 },
+  word: { color: colors.outline, fontFamily: fonts.display, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: 6 },
   rank: {
-    width: 26,
+    width: 22,
     textAlign: 'center',
     fontFamily: fonts.display,
     fontSize: size.lead,
-    color: colors.text,
-  },
-  roleDot: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: OUTLINE - 1,
-    borderColor: colors.outline,
-    alignItems: 'center',
-    justifyContent: 'center',
+    color: colors.textSoft,
   },
   rowName: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: size.body + 1 },
   out: { textDecorationLine: 'line-through', color: colors.textSoft },
-  roleName: { color: colors.textSoft, fontFamily: fonts.body, fontSize: size.small - 1 },
+  detail: { color: colors.textSoft, fontFamily: fonts.body, fontSize: size.small - 2 },
   gained: { color: colors.pink, fontFamily: fonts.display, fontSize: size.lead },
   total: {
     color: colors.text,

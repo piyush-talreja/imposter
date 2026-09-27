@@ -11,8 +11,10 @@ import {
   nextRound,
   resolveGuess,
   scoreGame,
+  totalPoints,
   type Game,
   type Player,
+  type ScoreLine,
   type Settings,
 } from './engine';
 
@@ -30,7 +32,7 @@ type GameState = {
   /** Everyone has seen their card for the current game. */
   dealt: boolean;
   /** Points awarded by the most recently finished game (null until it's tallied). */
-  lastPoints: Record<string, number> | null;
+  lastPoints: Record<string, ScoreLine[]> | null;
 
   addPlayer: (name: string) => void;
   removePlayer: (id: string) => void;
@@ -48,14 +50,15 @@ const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slic
 export const useGame = create<GameState>()(
   persist(
     (set, get) => {
-      /** Once a game has a winner, bank its points exactly once. */
+      /** Once a game is over (bonus round included), bank its points exactly once. */
       const settle = (game: Game) => {
-        if (!game.winner) return set({ game });
+        if (!game.over) return set({ game });
         const { scores, settings, history, usedWords } = get();
         const points = scoreGame(game);
         const nextScores = { ...scores };
         if (settings.scoring)
-          for (const [id, p] of Object.entries(points)) nextScores[id] = (nextScores[id] ?? 0) + p;
+          for (const [id, lines] of Object.entries(points))
+            nextScores[id] = (nextScores[id] ?? 0) + totalPoints(lines);
         const nextHistory = { ...history };
         for (const [id, role] of Object.entries(game.roles)) {
           if (role !== 'villager') nextHistory[id] = (nextHistory[id] ?? 0) + 1;
@@ -125,8 +128,8 @@ export const useGame = create<GameState>()(
     },
     {
       name: 'imposter-game',
-      // v2: elimination rules with villager / undercover / imposter roles.
-      version: 2,
+      // v3: two-stage hunt (imposter, then undercover bonus round) with itemised scores.
+      version: 3,
       migrate: (persisted) => {
         const old = persisted as { players?: Player[] };
         return { players: old.players ?? [], settings: DEFAULT_SETTINGS } as Partial<GameState>;

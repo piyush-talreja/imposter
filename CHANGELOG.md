@@ -7,6 +7,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Changed
 
+- **Two-stage hunt.** The Undercover plays on the Villagers' side. Once the Imposter is caught, a bonus round hunts any Undercover still in: Villagers score for catching them, and an Undercover who is never caught scores a bonus. Scores are itemised on the results screen.
+- Role counts are capped by group size (Imposters 1–3, Undercovers 0–3), so a table can't pick a broken split.
+- **One screen per player when dealing:** the name and a covered card on the same screen, replacing the separate "that's me" step.
+- No emojis. Roles use symbols instead: full dot (Villager), half dot (Undercover), empty ring (Imposter).
+- Much shorter copy throughout.
+
+### Changed
+
 - Every game has at least one Imposter. Undercover is optional, available from 4 players; 3-player games are 2 Villagers and 1 Imposter.
 
 ### Fixed

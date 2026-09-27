@@ -3,10 +3,18 @@
 //
 // Roles:
 //   villager   - gets the secret word
-//   undercover - gets the word's close cousin, and doesn't know they're different
+//   undercover - gets the word's close cousin, and doesn't know they're different,
+//                so they hunt the imposter alongside the villagers
 //   imposter   - gets no word, and knows it
-// Each round everyone still in gives a clue, then the group eliminates one player.
-// An eliminated imposter gets one guess at the villagers' word to win outright.
+//
+// A game is a two-stage hunt. Each round everyone still in gives a clue, then the
+// table votes one player out and their role is revealed.
+//   1. Find the imposter(s). A caught imposter gets one guess at the word; a
+//      correct guess wins the game for the imposters outright. Imposters also win
+//      if they survive until they're no longer outnumbered.
+//   2. Once every imposter is caught, the villagers' side has won. If an
+//      undercover is still in, a bonus round begins: villagers earn extra points
+//      for catching them, and an undercover who is never caught earns a bonus.
 
 import { type Difficulty, type WordEntry } from '@/features/words/words';
 
@@ -16,7 +24,8 @@ export type Player = { id: string; name: string };
 
 export type Role = 'villager' | 'undercover' | 'imposter';
 
-export type Winner = 'villagers' | 'infiltrators' | 'imposter-guess';
+/** Who won the main hunt. `villagers` is the whole non-imposter side, undercover included. */
+export type Winner = 'villagers' | 'imposters';
 
 export type RoleCounts = { undercover: number; imposter: number };
 
@@ -45,8 +54,16 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const MIN_PLAYERS = 3;
 
-/** Points for each member of the winning side. */
-export const POINTS: Record<Role, number> = { villager: 2, undercover: 5, imposter: 6 };
+export const POINTS = {
+  /** Every villager and undercover, when all imposters are caught. */
+  imposterCaught: 2,
+  /** Every imposter, when the imposters win. */
+  imposterWins: 6,
+  /** Every villager, for each undercover caught. */
+  undercoverCaught: 2,
+  /** An undercover who is never caught. */
+  undercoverUndetected: 4,
+} as const;
 
 export type Game = {
   word: string;
@@ -60,45 +77,55 @@ export type Game = {
   /** Set when an eliminated imposter is due to guess. */
   pendingGuess: string | null;
   lastGuess: { by: string; text: string; correct: boolean } | null;
+  /** Result of the main hunt; stays set through the undercover bonus round. */
   winner: Winner | null;
+  /** The game has finished, bonus round included. */
+  over: boolean;
 };
 
 export type Card = { kind: 'word'; word: string } | { kind: 'imposter'; category?: string };
 
-/** Infiltrators (undercover + imposter) must be outnumbered by villagers at the start. */
 /** Undercover needs enough villagers to be "close but different" from; below this it's imposter-only. */
 export const MIN_PLAYERS_FOR_UNDERCOVER = 4;
 
-/**
- * Most infiltrators (undercover + imposter) a group can have. Villagers stay in
- * the majority, except that 4 players may run 1 imposter + 1 undercover.
- */
+/** Upper bounds per role, so a group can't pick a split that breaks the game. */
+export function maxImposters(playerCount: number): number {
+  if (playerCount < 6) return 1;
+  if (playerCount < 10) return 2;
+  return 3;
+}
+
+/** Imposters plus undercovers never outnumber the villagers at the start. */
 export function maxInfiltrators(playerCount: number): number {
   if (playerCount <= 4) return Math.max(1, playerCount - 2);
   return Math.floor((playerCount - 1) / 2);
 }
 
-/** Most undercovers allowed alongside `imposter` imposters (0 below 4 players). */
+/** Most undercovers allowed alongside `imposter` imposters. */
 export function maxUndercover(playerCount: number, imposter: number): number {
   if (playerCount < MIN_PLAYERS_FOR_UNDERCOVER) return 0;
-  return Math.max(0, maxInfiltrators(playerCount) - imposter);
+  const cap = playerCount < 7 ? 1 : playerCount < 10 ? 2 : 3;
+  return Math.max(0, Math.min(cap, maxInfiltrators(playerCount) - imposter));
 }
 
 export function suggestRoles(playerCount: number): RoleCounts {
   if (playerCount <= 4) return { undercover: 0, imposter: 1 };
-  if (playerCount <= 6) return { undercover: 1, imposter: 1 };
+  if (playerCount <= 7) return { undercover: 1, imposter: 1 };
   if (playerCount <= 9) return { undercover: 2, imposter: 1 };
   if (playerCount <= 12) return { undercover: 2, imposter: 2 };
-  return { undercover: Math.floor(playerCount / 4), imposter: 2 };
+  return { undercover: 3, imposter: 2 };
 }
 
 /**
- * Resolve the counts actually used: there is always at least one imposter,
- * undercover is optional, and the game stays winnable.
+ * Resolve the counts actually used: always at least one imposter, undercover is
+ * optional, and both stay within their caps.
  */
 export function effectiveRoles(settings: Settings, playerCount: number): RoleCounts {
   const wanted = settings.autoRoles ? suggestRoles(playerCount) : settings.roles;
-  const imposter = Math.max(1, Math.min(wanted.imposter, maxInfiltrators(playerCount)));
+  const imposter = Math.max(
+    1,
+    Math.min(wanted.imposter, maxImposters(playerCount), maxInfiltrators(playerCount)),
+  );
   const undercover = Math.max(0, Math.min(wanted.undercover, maxUndercover(playerCount, imposter)));
   return { undercover, imposter };
 }
@@ -191,6 +218,7 @@ export function newGame(args: {
     pendingGuess: null,
     lastGuess: null,
     winner: null,
+    over: false,
   };
 }
 
@@ -215,20 +243,35 @@ export function cardFor(
 
 export const alive = (game: Game) => game.order.filter((id) => !game.eliminated.includes(id));
 
-export function checkWinner(game: Game): Winner | null {
-  const left = alive(game);
-  const villagers = left.filter((id) => game.roles[id] === 'villager').length;
-  const infiltrators = left.length - villagers;
-  if (infiltrators === 0) return 'villagers';
-  if (villagers <= 1) return 'infiltrators';
-  return null;
+const countAlive = (game: Game, role: Role) => alive(game).filter((id) => game.roles[id] === role).length;
+
+/** The villagers won the hunt and an undercover is still at large. */
+export const inBonusRound = (game: Game) => game.winner === 'villagers' && !game.over;
+
+/** Settle `winner` and `over` after an elimination or a guess. */
+function settle(game: Game): Game {
+  const imposters = countAlive(game, 'imposter');
+  const undercovers = countAlive(game, 'undercover');
+  const villagers = countAlive(game, 'villager');
+  let { winner, over } = game;
+  if (!winner) {
+    if (imposters === 0) winner = 'villagers';
+    else if (villagers + undercovers <= imposters) {
+      winner = 'imposters';
+      over = true;
+    }
+  }
+  // The bonus hunt ends once every undercover is caught, or there aren't enough
+  // villagers left to keep hunting.
+  if (winner === 'villagers' && (undercovers === 0 || villagers <= 1)) over = true;
+  return { ...game, winner, over };
 }
 
 export function eliminate(game: Game, playerId: string): Game {
-  if (game.winner || game.pendingGuess || game.eliminated.includes(playerId)) return game;
+  if (game.over || game.pendingGuess || game.eliminated.includes(playerId)) return game;
   const next: Game = { ...game, eliminated: [...game.eliminated, playerId], lastGuess: null };
   if (game.roles[playerId] === 'imposter') return { ...next, pendingGuess: playerId };
-  return { ...next, winner: checkWinner(next) };
+  return settle(next);
 }
 
 /** Case-, space- and punctuation-insensitive; a trailing plural "s" is forgiven. */
@@ -246,25 +289,35 @@ export function resolveGuess(game: Game, text: string, overrideCorrect?: boolean
   if (!game.pendingGuess) return game;
   const correct = overrideCorrect ?? isCorrectGuess(text, game.word);
   const next: Game = { ...game, pendingGuess: null, lastGuess: { by: game.pendingGuess, text, correct } };
-  return { ...next, winner: correct ? 'imposter-guess' : checkWinner(next) };
+  return correct ? { ...next, winner: 'imposters', over: true } : settle(next);
 }
 
 export function nextRound(game: Game): Game {
-  return game.winner || game.pendingGuess ? game : { ...game, round: game.round + 1 };
+  return game.over || game.pendingGuess ? game : { ...game, round: game.round + 1 };
 }
 
-/** Who scores for a finished game: the whole winning side, eliminated or not. */
-export function scoreGame(game: Game): Record<string, number> {
-  const points: Record<string, number> = {};
-  if (!game.winner) return points;
-  for (const [id, role] of Object.entries(game.roles)) {
-    const wins =
-      game.winner === 'villagers'
-        ? role === 'villager'
-        : game.winner === 'infiltrators'
-          ? role !== 'villager'
-          : id === game.lastGuess?.by;
-    if (wins) points[id] = POINTS[role];
+export type ScoreLine = { points: number; reason: string };
+
+/** Points earned in a finished game, per player, with the reason for each. */
+export function scoreGame(game: Game): Record<string, ScoreLine[]> {
+  const lines: Record<string, ScoreLine[]> = {};
+  if (!game.over) return lines;
+  const add = (id: string, points: number, reason: string) => (lines[id] ??= []).push({ points, reason });
+  const ids = Object.keys(game.roles);
+  const caughtUndercovers = game.eliminated.filter((id) => game.roles[id] === 'undercover').length;
+
+  for (const id of ids) {
+    const role = game.roles[id];
+    if (game.winner === 'villagers' && role !== 'imposter') add(id, POINTS.imposterCaught, 'Imposter caught');
+    if (game.winner === 'imposters' && role === 'imposter') add(id, POINTS.imposterWins, 'Imposter won');
+    if (role === 'villager' && caughtUndercovers > 0) {
+      add(id, POINTS.undercoverCaught * caughtUndercovers, 'Undercover caught');
+    }
+    if (role === 'undercover' && !game.eliminated.includes(id)) {
+      add(id, POINTS.undercoverUndetected, 'Never caught');
+    }
   }
-  return points;
+  return lines;
 }
+
+export const totalPoints = (lines: ScoreLine[] = []) => lines.reduce((sum, l) => sum + l.points, 0);

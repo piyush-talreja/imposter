@@ -29,32 +29,36 @@ Then scan the QR code in the terminal: use Expo Go on Android, or the Camera app
 
 ## How the game works
 
-There are three roles, and nobody knows who is who:
+| Role                                  | Gets                             | Knows their role?                                             |
+| ------------------------------------- | -------------------------------- | ------------------------------------------------------------- |
+| **Villager** (most players)           | The secret word                  | Yes, they know they have _the_ word                           |
+| **Undercover** (optional, 4+ players) | A similar word (Pizza → Calzone) | **No**. They think they're a Villager, so they hunt with them |
+| **Imposter** (always at least 1)      | No word                          | Yes                                                           |
 
-| Role                        | Gets                                      | Knows their role?                      |
-| --------------------------- | ----------------------------------------- | -------------------------------------- |
-| **Villager** (most players) | The secret word                           | No, but they know they have _the_ word |
-| **Undercover**              | The word's close cousin (Pizza → Calzone) | **No**. They think they're a villager  |
-| **Imposter**                | No word                                   | Yes                                    |
+Each round, everyone still in gives a one-word clue, the table discusses, and then it votes **one** player out on a single screen. The eliminated player's role is revealed.
 
-1. **Deal:** pass the phone round. Each player **presses and holds** the sticker to peel it back and see their word. Letting go hides it again.
-2. **Clues:** everyone still in says one word, clockwise from a random starting player.
-3. **Accuse:** discuss, then agree out loud on **one** player to eliminate. The phone stays on the table, with no passing it round to vote. Their role is revealed.
-4. **Last words:** if the Imposter is eliminated, they type one guess at the villagers' word. If it's right, **the Imposter wins**. If the table decides a wrong answer is close enough, it can accept it.
-5. Repeat until someone wins:
-   - **Villagers win** when every Undercover and Imposter is out.
-   - **Infiltrators win** (Undercover and Imposter) when only one Villager is left.
+1. **Deal:** one screen per player. Hand them the phone; they **press and hold** the card to see their word, then pass it on.
+2. **Find the Imposter:** a caught Imposter types one guess at the word. If it's right, **the Imposter wins**. If the table decides a wrong answer is close enough, it can accept it. The Imposter also wins by surviving until they're no longer outnumbered.
+3. **Bonus round:** once every Imposter is caught, the Villagers' side has won. If an Undercover is still in, play continues until they're caught or only one Villager is left.
+
+### Scoring
+
+| Event                            | Points                               |
+| -------------------------------- | ------------------------------------ |
+| Imposter caught                  | every Villager and Undercover **+2** |
+| Imposter wins                    | each Imposter **+6**                 |
+| Undercover caught (at any point) | every Villager **+2** per Undercover |
+| Undercover never caught          | that Undercover **+4**               |
 
 ### Options
 
-| Option                    | What it does                                                                                                                                                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Roles                     | Always at least **1 Imposter**. **Undercover is optional**, available from 4 players. Use the suggested split for your group size, or set the counts yourself |
-| Case files                | 12 categories, or All                                                                                                                                         |
-| Difficulty / Kids         | Easy, medium, hard. Kids uses easy words only                                                                                                                 |
-| Imposter sees category    | Gives the player with no word something to go on                                                                                                              |
-| Imposter never goes first | The first clue always comes from someone who has a word                                                                                                       |
-| Keep score                | Everyone on the winning side scores: Villager 2, Undercover 5, Imposter 6. A lone Imposter win (a correct guess) scores 6 for that Imposter                   |
+| Option                    | What it does                                                                                                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Roles                     | Recommended split for the group size, or set counts yourself within the caps: Imposters 1 (up to 2 from 6 players, 3 from 10); Undercovers 0 (optional from 4 players, up to 1/2/3 at 4/7/10+). Villagers are never outnumbered |
+| Topics / Difficulty       | 12 topics or All; easy, medium, hard                                                                                                                                                                                            |
+| Imposter sees the topic   | Gives the player with no word something to go on                                                                                                                                                                                |
+| Imposter never goes first | The first clue always comes from someone who has a word                                                                                                                                                                         |
+| Keep score                | Running totals across games (see Scoring)                                                                                                                                                                                       |
 
 ## Scripts
 
