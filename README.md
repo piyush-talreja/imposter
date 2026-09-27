@@ -103,6 +103,10 @@ Add rows to `src/features/words/words.ts` as `[word, cousin, 'e' | 'm' | 'h']`. 
 - **UX:** Quit asks for confirmation, dealing shows progress dots, and a "Still in" row shows which roles remain (following the Nielsen heuristics: system status, error prevention, recognition over recall, minimalist design).
 - **Fonts:** Big Shoulders Display (condensed poster headlines) and Outfit (body text). Tokens live in `src/theme/tokens.ts`.
 
+## Roadmap
+
+- **Phase 2: online private rooms.** Host a room, share a code, and play on your own phones, together or apart. See the plan in [docs/phase-2-online.md](docs/phase-2-online.md).
+
 ## Configuration
 
 No env vars or backend are needed. Everything runs on the device, and players, settings and scores are saved locally. See [ADR 0002](docs/decisions/0002-offline-pass-and-play-no-backend.md).
