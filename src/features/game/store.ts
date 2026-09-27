@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { DEFAULT_ONLINE_SETTINGS, type OnlineSettings } from '@/features/online/types';
 import { WORDS } from '@/features/words/words';
 import { setSoundEnabled } from '@/lib/sound';
 
@@ -36,6 +37,10 @@ type GameState = {
   lastPoints: Record<string, ScoreLine[]> | null;
   /** In-app mute for sound effects. */
   sound: boolean;
+  /** Name used in online rooms, remembered on this device. */
+  onlineName: string;
+  /** The host's last room settings, reused next time. */
+  onlineSettings: OnlineSettings;
 
   addPlayer: (name: string) => void;
   removePlayer: (id: string) => void;
@@ -47,6 +52,8 @@ type GameState = {
   continueRound: () => void;
   resetScores: () => void;
   setSound: (on: boolean) => void;
+  setOnlineName: (name: string) => void;
+  setOnlineSettings: (settings: OnlineSettings) => void;
 };
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -86,6 +93,8 @@ export const useGame = create<GameState>()(
         dealt: false,
         lastPoints: null,
         sound: true,
+        onlineName: '',
+        onlineSettings: DEFAULT_ONLINE_SETTINGS,
 
         addPlayer: (name) => {
           const trimmed = name.trim();
@@ -129,6 +138,9 @@ export const useGame = create<GameState>()(
         },
 
         resetScores: () => set({ scores: {}, history: {}, lastPoints: null }),
+
+        setOnlineName: (onlineName) => set({ onlineName: onlineName.trim().slice(0, 16) }),
+        setOnlineSettings: (onlineSettings) => set({ onlineSettings }),
 
         setSound: (on) => {
           setSoundEnabled(on);

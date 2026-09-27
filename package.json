@@ -21,6 +21,7 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-qrcode-svg": "^6.3.26",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
@@ -38,6 +39,7 @@
     "eslint-config-expo": "~57.0.2",
     "jest": "^30.5.2",
     "jest-expo": "^57.0.5",
+    "playwright": "^1.63.0",
     "prettier": "^3.9.9",
     "supabase": "^2.118.0",
     "typescript": "~6.0.3"
@@ -56,7 +58,8 @@
     "db:reset": "supabase db reset",
     "test:db": "supabase test db",
     "functions:serve": "supabase functions serve --no-verify-jwt",
-    "test:online": "node supabase/tests/smoke.mjs"
+    "test:online": "node supabase/tests/smoke.mjs",
+    "test:e2e:rooms": "node e2e/rooms.mjs"
   },
   "private": true,
   "jest": {
