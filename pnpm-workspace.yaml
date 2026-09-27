@@ -1,0 +1,7 @@
+# pnpm 10+ reads project settings from here (not .npmrc).
+# Flat node_modules is the most reliable layout for React Native / Metro.
+nodeLinker: hoisted
+# Build scripts are opt-in. These are optional native file watchers; not needed.
+allowBuilds:
+  '@parcel/watcher': false
+  unrs-resolver: false

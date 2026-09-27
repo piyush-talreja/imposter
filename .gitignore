@@ -42,3 +42,12 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# from create-expo-app
+.kotlin/
+*.orig.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo
+/ios
+/android
