@@ -9,6 +9,7 @@
     "@supabase/supabase-js": "^2.117.2",
     "expo": "~57.0.25",
     "expo-audio": "~57.0.5",
+    "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.19",
     "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",
@@ -63,7 +64,11 @@
     "test:online:game": "node supabase/tests/game.mjs",
     "test:e2e:game": "node e2e/game.mjs",
     "test:online:resilience": "node supabase/tests/resilience.mjs",
-    "test:e2e:resilience": "node e2e/resilience.mjs"
+    "test:e2e:resilience": "node e2e/resilience.mjs",
+    "test:online:load": "node supabase/tests/load.mjs",
+    "deploy:db": "supabase db push",
+    "deploy:functions": "supabase functions deploy game-action",
+    "test:e2e:polish": "node e2e/polish.mjs"
   },
   "private": true,
   "jest": {

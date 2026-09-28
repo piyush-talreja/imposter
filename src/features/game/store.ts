@@ -41,6 +41,8 @@ type GameState = {
   onlineName: string;
   /** The host's last room settings, reused next time. */
   onlineSettings: OnlineSettings;
+  /** The "how online works" intro has been dismissed. */
+  onlineIntroSeen: boolean;
 
   addPlayer: (name: string) => void;
   removePlayer: (id: string) => void;
@@ -54,6 +56,7 @@ type GameState = {
   setSound: (on: boolean) => void;
   setOnlineName: (name: string) => void;
   setOnlineSettings: (settings: OnlineSettings) => void;
+  dismissOnlineIntro: () => void;
 };
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -95,6 +98,7 @@ export const useGame = create<GameState>()(
         sound: true,
         onlineName: '',
         onlineSettings: DEFAULT_ONLINE_SETTINGS,
+        onlineIntroSeen: false,
 
         addPlayer: (name) => {
           const trimmed = name.trim();
@@ -141,6 +145,7 @@ export const useGame = create<GameState>()(
 
         setOnlineName: (onlineName) => set({ onlineName: onlineName.trim().slice(0, 16) }),
         setOnlineSettings: (onlineSettings) => set({ onlineSettings }),
+        dismissOnlineIntro: () => set({ onlineIntroSeen: true }),
 
         setSound: (on) => {
           setSoundEnabled(on);

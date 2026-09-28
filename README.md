@@ -124,6 +124,8 @@ pnpm test:online:game            # a whole 5-player game through the API
 pnpm test:e2e:game               # the same game in 5 browser sessions
 pnpm test:online:resilience      # timers, leaving mid-game, host handover (API, ~30 s)
 pnpm test:e2e:resilience         # the same in the browser, incl. a host tab closing (~2 min)
+pnpm test:online:load            # 20 players, 20 simultaneous votes; prints latency
+pnpm test:e2e:polish             # intro, server-down state, copy/paste, privacy page
 ```
 
 Home → **Play online** → Host or Join. Share the 4-letter code, the link, or the QR code. Open more browser windows (or private windows) to add players.
@@ -154,8 +156,7 @@ No env vars or backend are needed. Everything runs on the device, and players, s
 
 ## Deploying
 
-- **Web:** run `pnpm export:web`, then host `dist/` on any static host (Vercel, Netlify, EAS Hosting).
-- **App stores:** run `npx eas-cli@latest build -p all --profile production`, then `npx eas-cli@latest submit`. This needs an [Expo account](https://expo.dev/signup), plus Apple and Google developer accounts. The profiles are in `eas.json`.
+See **[docs/release.md](docs/release.md)**: the production Supabase project (`pnpm deploy:db`, `pnpm deploy:functions`), the web build, EAS store builds, and the store listing checklist.
 
 ## Troubleshooting
 

@@ -51,6 +51,17 @@ export function ensureSignedIn(): Promise<string> {
   return verified;
 }
 
+/** Can we reach the game server right now? (Signs in if needed, then pings the referee.) */
+export async function checkServer(): Promise<boolean> {
+  try {
+    await ensureSignedIn();
+    const { data, error } = await supabase().functions.invoke('game-action', { body: { action: 'ping' } });
+    return !error && data?.ok === true;
+  } catch {
+    return false;
+  }
+}
+
 const isAuthGone = (e: { status?: number; message?: string }) =>
   e.status === 401 ||
   e.status === 403 ||

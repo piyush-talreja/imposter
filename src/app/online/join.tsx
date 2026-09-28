@@ -1,10 +1,11 @@
+import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Body, Button, Card, Screen } from '@/components/ui';
 import { useGame } from '@/features/game/store';
-import { CODE_LENGTH, isValidCode, normalizeCode } from '@/features/online/code';
+import { CODE_LENGTH, extractCode, isValidCode, normalizeCode } from '@/features/online/code';
 import { friendlyError } from '@/features/online/errors';
 import { joinRoom } from '@/features/online/rooms';
 import { OUTLINE, TOUCH, colors, fonts, radius, size, space } from '@/theme/tokens';
@@ -77,6 +78,17 @@ export default function JoinRoom() {
           style={styles.code}
         />
         <Body style={styles.hint}>4 letters and numbers, from the host’s screen</Body>
+        <Button
+          label="Paste"
+          variant="ghost"
+          onPress={async () => {
+            const pasted = extractCode(await Clipboard.getStringAsync().catch(() => ''));
+            if (pasted) {
+              setError(null);
+              setCode(pasted);
+            }
+          }}
+        />
       </Card>
 
       {!onlineName ? (
