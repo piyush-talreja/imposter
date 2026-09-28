@@ -7,6 +7,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- Phase 2, M5: **polish and release prep**
+  - **First-time intro:** a "How it works" card in the online hub
+  - **Server check:** a "Can't connect" state with Try again (pass-and-play still works offline)
+  - **Copy and Paste:** copy the room code in one tap; Paste finds the code even in a pasted link or share message
+  - **Clearer share message**
+  - **Privacy screen**
+  - **Release guide** (`docs/release.md`)
+- 20-player load test
+
+### Fixed
+
+- With 20 players acting at the same instant, some actions could fail with "busy, try again"; the server now retries with backoff and all 20 succeed
+- The app no longer requests microphone, storage or background-service permissions; store builds ask only for internet, audio settings and vibration
+
 - Phase 2, M4: **resilience for online games**
   - **Timers:** optional clue and vote timers, with a countdown on every phone. When time runs out, an idle turn is skipped and the vote closes with the votes cast so far; the server's clock decides
   - **Leaving:** a player who leaves or is removed mid-game drops out cleanly (their role is shown, and their vote and votes against them are dropped); if the Imposter leaves, the Villagers win

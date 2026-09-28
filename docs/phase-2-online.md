@@ -1,6 +1,6 @@
 # Phase 2: Online private rooms
 
-Status: **M1–M4 done**. M5 (polish and release) next. Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
+Status: **M1–M5 done**. Ready to release: see [release.md](release.md). Decision records: [ADR 0004](decisions/0004-online-rooms-on-supabase.md), [ADR 0005](decisions/0005-remote-clues-without-chat.md).
 
 ## Goal
 
@@ -208,6 +208,13 @@ Rejoin with the same anonymous user and resync from `public_state` plus `my-card
 - **Reconnecting** resyncs on subscribe. The _Hold: your word_ button re-fetches your card privately at any point.
 - **Cleanup:** `pg_cron` runs `cleanup_expired()` hourly. It deletes rooms past `expires_at` (cascading to players, games and secrets) and anonymous users over 30 days old who aren't in any room.
 - Tests: 15 more unit tests, 6 database tests, `supabase/tests/resilience.mjs` (17 checks, with real timers) and `e2e/resilience.mjs` (6 checks in the browser, including a host tab closing).
+
+**Shipped (M5).** Implementation notes:
+
+- **Load test** (`supabase/tests/load.mjs`): a 20-player game with 20 simultaneous `seen` taps and votes. It found that 6 optimistic-concurrency retries weren't enough at 20 writers; the function now retries up to 40 times with jittered backoff. Local p95 is about 0.3 s per action under full contention.
+- **First-time intro** in the online hub; **server check** with a clear "Can't connect" state and Try again (pass-and-play still works); **Copy** and **Paste** for codes. `extractCode` finds a code in a bare code, a join link, or the whole share message, and ignores ordinary 4-letter words.
+- **Privacy** screen (also the store privacy-policy page on the web). The microphone permission from `expo-audio` is disabled; iOS export compliance is set.
+- **Release guide:** [release.md](release.md) (production Supabase, web, EAS builds, the store checklist).
 
 ## Testing strategy
 

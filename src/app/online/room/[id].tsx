@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -26,6 +27,7 @@ export default function Lobby() {
   const { onlineName } = useGame();
   const { me, room, players, names, game, online, connection, kicked, gone } = useRoom(id, onlineName);
   const [showQr, setShowQr] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [removing, setRemoving] = useState<RoomPlayer | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,17 @@ export default function Lobby() {
 
   const share = () =>
     room &&
-    Share.share({ message: `Join my Imposter game: ${room.code}\n${link}`, url: link }).catch(() => {});
+    Share.share({
+      message: `Join my Imposter game! Room code ${room.code}\n\nOpen Imposter → Play online → Join, or tap: ${link}`,
+      url: link,
+    }).catch(() => {});
+
+  const copy = async () => {
+    if (!room) return;
+    await Clipboard.setStringAsync(room.code).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   // Removed, or the room has closed: explain, then back to the online hub.
   if (kicked || gone) {
@@ -147,7 +159,14 @@ export default function Lobby() {
         <View style={styles.shareRow}>
           <Button label="Share" onPress={share} disabled={!room} style={styles.fill} />
           <Button
-            label={showQr ? 'Hide QR' : 'QR code'}
+            label={copied ? 'Copied' : 'Copy'}
+            variant="outline"
+            onPress={copy}
+            disabled={!room}
+            style={styles.fill}
+          />
+          <Button
+            label={showQr ? 'Hide QR' : 'QR'}
             variant="outline"
             onPress={() => setShowQr((v) => !v)}
             disabled={!room}

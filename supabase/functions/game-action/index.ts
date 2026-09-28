@@ -140,7 +140,11 @@ async function start(ctx: Ctx) {
  */
 async function apply(ctx: Ctx, room: Room, change: (s: OnlineState) => OnlineState) {
   if (!room.current_game) throw new ActionError('no_game');
-  for (let attempt = 0; attempt < 6; attempt++) {
+  // Up to 20 players can act at the same instant (e.g. everyone voting), and each
+  // round of conflicts has one winner, so retry plenty, with a short random
+  // backoff that spreads the retries out.
+  for (let attempt = 0; attempt < 40; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 5 + Math.random() * 20 * Math.min(attempt, 5)));
     const { data: secret, error } = await ctx.admin
       .from('game_secrets')
       .select('state, version')

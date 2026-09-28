@@ -1,7 +1,8 @@
+import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Character, LOOK_FOR_ROLE } from '@/components/Character';
-import { Body, Card, Screen } from '@/components/ui';
+import { Body, Button, Card, Screen } from '@/components/ui';
 import { POINTS, type Role } from '@/features/game/engine';
 import { fitFontSize, useColumnWidth } from '@/lib/fit';
 import { OUTLINE, ROLE_META, colors, fonts, radius, size, space } from '@/theme/tokens';
@@ -131,11 +132,15 @@ export default function HowToPlay() {
           </View>
         ))}
       </Card>
+      <View style={styles.links}>
+        <Button label="Privacy" variant="ghost" onPress={() => router.push('/privacy')} />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  links: { alignItems: 'center' },
   intro: { alignItems: 'center', gap: space.sm, borderColor: colors.pink },
   introCast: { flexDirection: 'row', gap: space.xs, alignItems: 'flex-end' },
   introTitle: { fontFamily: fonts.display, fontSize: size.lead + 6, color: colors.text },

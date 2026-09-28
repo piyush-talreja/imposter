@@ -33,9 +33,7 @@ export const updateSettings = (roomId: string, settings: OnlineSettings) =>
 export const startGame = (roomId: string) => rpc<void>('start_game', { p_room: roomId });
 
 /** Current room and active players (readable only by members, via RLS). */
-export async function fetchRoom(
-  roomId: string,
-): Promise<{
+export async function fetchRoom(roomId: string): Promise<{
   room: Room | null;
   players: RoomPlayer[];
   names: Record<string, string>;
