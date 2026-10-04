@@ -4,6 +4,8 @@ A pass-and-play party word game for iOS, Android and the web. Everyone gets the 
 
 **3+ players · one phone · 10–20 minutes · works offline**
 
+**Play it now:** https://piyush-talreja.github.io/imposter/ (pass-and-play in any phone browser, nothing to install).
+
 ## Quick start
 
 **You need:** [Node 24](https://nodejs.org) (the version is pinned in `.nvmrc`) and [pnpm](https://pnpm.io/installation). The fastest way to try it on a phone is the [Expo Go](https://expo.dev/go) app.

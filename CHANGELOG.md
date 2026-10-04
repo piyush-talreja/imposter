@@ -7,6 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- **Web on GitHub Pages:** pass-and-play is published to https://piyush-talreja.github.io/imposter/ on every push to `main`
 - Phase 2, M4: **resilience for online games**
   - **Timers:** optional clue and vote timers, with a countdown on every phone. When time runs out, an idle turn is skipped and the vote closes with the votes cast so far; the server's clock decides
   - **Leaving:** a player who leaves or is removed mid-game drops out cleanly (their role is shown, and their vote and votes against them are dropped); if the Imposter leaves, the Villagers win
