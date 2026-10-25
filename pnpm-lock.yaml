@@ -176,8 +176,8 @@ importers:
         specifier: 2.2.0
         version: 2.2.0(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))
       '@supabase/supabase-js':
-        specifier: ^2.117.2
-        version: 2.117.2
+        specifier: ^2.118.0
+        version: 2.118.0
       expo:
         specifier: ~57.0.25
         version: 57.0.25(4ce6f179748addf55a35aa2320447c86)
@@ -198,7 +198,7 @@ importers:
         version: 57.0.11(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
       expo-router:
         specifier: ~57.0.23
-        version: 57.0.23(77db04033bf1da4d903c743e71f70d3f)
+        version: 57.0.23(ef1638035450a71f8aa980955f37e057)
       expo-splash-screen:
         specifier: ~57.0.9
         version: 57.0.9(expo@57.0.25)(supports-color@8.1.1)(typescript@6.0.3)
@@ -242,15 +242,15 @@ importers:
         specifier: 0.10.1
         version: 0.10.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
       zustand:
-        specifier: ^5.0.15
-        version: 5.0.15(@types/react@19.2.18)(react@19.2.3)
+        specifier: ^5.0.16
+        version: 5.0.16(@types/react@19.2.18)(react@19.2.3)
     devDependencies:
       '@expo/ngrok':
         specifier: ^4.1.3
         version: 4.1.3
       '@testing-library/react-native':
-        specifier: ^14.0.1
-        version: 14.0.1(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(test-renderer@1.3.0(@types/react@19.2.18)(react@19.2.3))
+        specifier: ^14.1.0
+        version: 14.1.0(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(test-renderer@1.3.0(@types/react@19.2.18)(react@19.2.3))
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -270,14 +270,14 @@ importers:
         specifier: ^57.0.5
         version: 57.0.5(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(expo@57.0.25)(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
       playwright:
-        specifier: ^1.63.0
-        version: 1.63.0
+        specifier: ^1.64.1
+        version: 1.64.1
       prettier:
-        specifier: ^3.9.9
-        version: 3.9.9
+        specifier: ^3.9.10
+        version: 3.9.10
       supabase:
-        specifier: ^2.118.0
-        version: 2.118.0
+        specifier: ^2.121.0
+        version: 2.121.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -1701,75 +1701,75 @@ packages:
   '@sinonjs/fake-timers@15.4.0':
     resolution: {integrity: sha512-DsG+8/LscQIQg68J6Ef3dv10u6nVyetYn923s3/sus5eaGfTo1of5WMZSLf0UJc9KDuKPilPH0UDJCjvNbDNCA==}
 
-  '@supabase/auth-js@2.117.2':
-    resolution: {integrity: sha512-Z3WnGwrphYZubrLbxp5Iv0tLA9A5GhvKzJ/ZXglxqwd2QEH2R4dXRltjVJ8sIn4xEW2BSFIGT0yALVJIgZeDYw==}
+  '@supabase/auth-js@2.118.0':
+    resolution: {integrity: sha512-xWfPXyhS2KDSfAneMtI6p/tBnbdiz/5vaRKXEqUfzfC9WCniKr2Ds5o5G7RIGig0bom4z6wUY9zaV07WDVTfnQ==}
     engines: {node: '>=22.0.0'}
 
-  '@supabase/cli-darwin-arm64@2.118.0':
-    resolution: {integrity: sha512-48W7wkHIVNgwSz4zr+xsC94la1PytCpudOw5w9qJWAISyBWRXMFBCEMb9aVIEG8S9OcLb4X1KZy4PPA/T+f7NQ==}
+  '@supabase/cli-darwin-arm64@2.121.0':
+    resolution: {integrity: sha512-ZvXKj3wW4Kq5/MrG2xdgZeOWETxmUC9jl16X/i/np7u5A/WLuC/L0+KKY5i0eCrTnNwWFpZdlWKzu/J9QgkPgg==}
     cpu: [arm64]
     os: [darwin]
 
-  '@supabase/cli-darwin-x64@2.118.0':
-    resolution: {integrity: sha512-r6z41S0ycJiy2cO6sbJA7kPCodpAus6b3Km+qyn2zYlnTLN0nbscYnKxrZf/rJNR+S+sdpOZXgdQjGc/z5jvXw==}
+  '@supabase/cli-darwin-x64@2.121.0':
+    resolution: {integrity: sha512-s+bnLljdI5MYlt92rJnsIuVcTYtmJyydUB/FUsKm5KCyD+HpwnY1hL6m/+bKZQCwIHsql1dlmJRZ0HNZOZzuTQ==}
     cpu: [x64]
     os: [darwin]
 
-  '@supabase/cli-linux-arm64-musl@2.118.0':
-    resolution: {integrity: sha512-8yXIa+9g3FVVlnUAZ9wB1NEP6kvO0tpqQkDs3wqmb6btLD1MYosD/2/ZazSkpEHiKOwKUSymvUg0OgqI7a1gpw==}
+  '@supabase/cli-linux-arm64-musl@2.121.0':
+    resolution: {integrity: sha512-8fGnWhnnbf3zdV7mQvEHb4qa1LMTq/JpSdO109O/Lxy246Dwar8o5XrDgy7bBK8QLzvp0XH+p1ky+wxRGVFzpw==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@supabase/cli-linux-arm64@2.118.0':
-    resolution: {integrity: sha512-gYjOTnsYgwC68suoFALaXo87KvluXMjdWuo26a7hyD8vLeRJrmX+dpdxgegckQ7wxz8V1iotSBQU6Hd44FEDqw==}
+  '@supabase/cli-linux-arm64@2.121.0':
+    resolution: {integrity: sha512-JKvffWRuzS1+cVzgv1gWi2nWaCGvS22mMMwEBnSkRFD0BSdN1QHZ7yteI7uRg1HV9R0s+HCwg1rtjrHnAEE55Q==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@supabase/cli-linux-x64-musl@2.118.0':
-    resolution: {integrity: sha512-baHVTKJ8OehCXIt6pjHFRXofoUqQzve+43lRKKeVlcgDmgHHTTaF/wTpNvQ86IhoDRkiQTuHQkDG8I5GtHdvEA==}
+  '@supabase/cli-linux-x64-musl@2.121.0':
+    resolution: {integrity: sha512-diDbFsC/KRmnOGUYYBxmUqn6ccqB+jliesMfp821grDIVkq9ucqg/aUjCOsCyRbcs5uhgbbWgh9YWTuxfVpZog==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@supabase/cli-linux-x64@2.118.0':
-    resolution: {integrity: sha512-nHm27uv15iu4xIQZRC++CS4uKYU9HuFn9HiOf407620OQ3cCp70fLT59grFlYQ+bqM7Zrv/GmEZHdgR8UO65RA==}
+  '@supabase/cli-linux-x64@2.121.0':
+    resolution: {integrity: sha512-87EhtLctkNtC51CPhyeLoSdoGGzCZ3iNbSdczdcSklbvg0RsJbU+mTDaF3v53EWuPhyM0VRYqZJZNnjI5ABLcg==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@supabase/cli-windows-arm64@2.118.0':
-    resolution: {integrity: sha512-wd592HmQQ7DsGjnwDHILJfFlsRBQ8Q6wwjX5AXRmqznsj3NOPfFzZm2GtV8hJIj1Ttsf7B8N1DqW/0ta7kU4oQ==}
+  '@supabase/cli-windows-arm64@2.121.0':
+    resolution: {integrity: sha512-cHpGQTLXUm4Uk9NzIdv8oUvmsNq7mlAN/CmVqNYzMUJyqmFofOPETwYPShDV9apA+5k84oKU93tn3N4wv7B3yg==}
     cpu: [arm64]
     os: [win32]
 
-  '@supabase/cli-windows-x64@2.118.0':
-    resolution: {integrity: sha512-qVAJL532b5pB8uJAPA/+3+wtwM/DX1GxwVLCSDmiT6wfUBD6OJcCYRXCEaUx0YjupyaDoPeuP4BF7IfkQTajww==}
+  '@supabase/cli-windows-x64@2.121.0':
+    resolution: {integrity: sha512-uvWiQ3cGKrZhtkctXHJJY0r0L6D2s/Dbc8/CxOVDxlXIH5mG3f8ZbqwMs9eRbPDqifyYFlwl+BX+tY3aJosIxQ==}
     cpu: [x64]
     os: [win32]
 
-  '@supabase/functions-js@2.117.2':
-    resolution: {integrity: sha512-6DT4ZIjmZxa9ANKaBIrjc86AyKrX8M376ynvNeOBBVad3eP7x3UHqWfDR2ynFkHGzCuOpr1A+kObmnahxuwuog==}
+  '@supabase/functions-js@2.118.0':
+    resolution: {integrity: sha512-4ofletPa/noKAU6KHeqsd3FztGzRPUEJRey1MKY0o+PIHaVePqRPShIXtl37gcVyIWaFM+zNg6r9zh0uUSFOSA==}
     engines: {node: '>=22.0.0'}
 
   '@supabase/phoenix@0.4.5':
     resolution: {integrity: sha512-aAn9H9ovVyeApKy11OWOrrOGq8DV68yWeH4ud2lN9fzn4aO8Zb5GLL9m1pUg9nLqIcT+ZDfAcsZe0E/nqdv2lw==}
 
-  '@supabase/postgrest-js@2.117.2':
-    resolution: {integrity: sha512-V1Qhn+M8xzJqCasOxHZ2KG19Fj39PxU7weEAmOK65/KTsWCRXboB4hcQwFvxRvM7ZikeP9IZWNvQkfjvSxzYFw==}
+  '@supabase/postgrest-js@2.118.0':
+    resolution: {integrity: sha512-JXy+37KPApHsyotaQACovv/Jy9E22rfiWLRuT+2UjoEAcAIelDFIrsF/FY47Dy19mO7lI0Tq+zDCX8oJ2Ozfiw==}
     engines: {node: '>=22.0.0'}
 
-  '@supabase/realtime-js@2.117.2':
-    resolution: {integrity: sha512-lYXSAIg3eAKA58riUED6Vb+TCzF8jtx18uOoiCaVJ7ZMre6FWBpwB1MPeW+B6vykJT/hPdiuqwcSB7ILMS21ew==}
+  '@supabase/realtime-js@2.118.0':
+    resolution: {integrity: sha512-pzCIEWjqD5/xqEZQerpt+q9rsgYkcrkgCJgf0W2ULqC4fYUeB/p9CFa3t9vn+IVh6dMN9r4ZCE262lZvUC+Bfw==}
     engines: {node: '>=22.0.0'}
 
-  '@supabase/storage-js@2.117.2':
-    resolution: {integrity: sha512-8gAJoVaxZa/War2kFRfJMxGk4M190Q7lJ70BofwGlRxU/u9pIodd6XyTvmXkxOKXWuIYtkDaYPZrIAUt1T/7FQ==}
+  '@supabase/storage-js@2.118.0':
+    resolution: {integrity: sha512-5MNkKt2Moy7Jud/sPX7/28BwdDxZMCVHGJT00b8op3KRa9LKSjOAYU5IcfGWIstaasAqY8GkbA6oI3IRDgB1YQ==}
     engines: {node: '>=22.0.0'}
 
-  '@supabase/supabase-js@2.117.2':
-    resolution: {integrity: sha512-eSG2VKnHR+Clp1PmidZ1/weJ8PJwoybjva3L2GgKqFG4YDS1Iqmc61psKGZP5xw6OMT2O7ZorPR42PY6q1BOXg==}
+  '@supabase/supabase-js@2.118.0':
+    resolution: {integrity: sha512-FxI8UXMVC2UG7IkeiI8fuQZqq2oI3JeSuN8MPIC2RLVaoEAxKS0nqE6kii9Ewpq8f9gNPM6git1Y8f0vN/QLFw==}
     engines: {node: '>=22.0.0'}
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0'
@@ -1781,8 +1781,8 @@ packages:
     resolution: {integrity: sha512-4BAffykYOgO+5nzBWYwE3W90sBgLJoUPRWWcL8wlyiM8IB8ipJz3UMJ9KXQd1RKQXpKp8Tutn80HZtWsu2u76w==}
     engines: {node: '>=10'}
 
-  '@testing-library/react-native@14.0.1':
-    resolution: {integrity: sha512-2r2e2y8SkUNRWKRXlUGqDYunB+AkbdXUPn49Bs5rpv9oxRb0K3USBVugbPbAKJjfj4w5Ba91NJ8LcQCZyopUZA==}
+  '@testing-library/react-native@14.1.0':
+    resolution: {integrity: sha512-tWOam5U3aUE8XqStdWAN/OuUUdGRzh/vJMg7SfCaqXNKx7orRh04590Jp4JbORctYjORoRYfJSg04I2//wnxYw==}
     engines: {node: ^22.13.0 || >=24}
     peerDependencies:
       jest: '>=29.0.0'
@@ -4611,13 +4611,13 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  playwright-core@1.63.0:
-    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.63.0:
-    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -4648,8 +4648,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier@3.9.9:
-    resolution: {integrity: sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==}
+  prettier@3.9.10:
+    resolution: {integrity: sha512-skGHTH1Yb9QvaTC4hWnRTzEYtCpApF0UMBPz+t/0ZPzP8ihefo/btKd+QA7pUE0fEwA1SbS/NmhyEcstdXOIdA==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -5241,8 +5241,8 @@ packages:
   styleq@0.1.3:
     resolution: {integrity: sha512-3ZUifmCDCQanjeej1f6kyl/BeP/Vae5EYkQ9iJfUm/QwZvlgnZzyflqAsAWYURdtea8Vkvswu2GrC57h3qffcA==}
 
-  supabase@2.118.0:
-    resolution: {integrity: sha512-0aPIlzBSBLwbJZCMZKD1QAwlc4xNnNvvk07QuSuuKBKzGLSeV3GovgTLlMKFTJ4JWfJubWF0URPLuPUr0kZr5g==}
+  supabase@2.121.0:
+    resolution: {integrity: sha512-xffhOgD9rXsXLK+DQ+3Gq8b2KmavMjPHGuJr7lfVlD8vKK1HHFggYlmzdRECqPmOL8g3Yd5PN3URcUR8xWZcWw==}
     hasBin: true
 
   supports-color@5.5.0:
@@ -5677,8 +5677,8 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zustand@5.0.15:
-    resolution: {integrity: sha512-MpSEjRiBkA9crSYeOUH32rJC7SVqAbm0Fqcqge/bUi2PPoLcBWKOsG+C8mevmpr8TwXHBVkChbbJiyvkE+i/3A==}
+  zustand@5.0.16:
+    resolution: {integrity: sha512-Uv7e327ihlCfayfja3hDc0M64Upev1LWBKpRobdK4NyovDDPeeX4imWXc/wzC1yc6fkYPoAY/ncKVPAs2jrtQw==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
       '@types/react': '>=18.0.0'
@@ -6387,7 +6387,7 @@ snapshots:
       ws: 8.21.3
       zod: 3.25.76
     optionalDependencies:
-      expo-router: 57.0.23(77db04033bf1da4d903c743e71f70d3f)
+      expo-router: 57.0.23(ef1638035450a71f8aa980955f37e057)
       react-native: 0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
     transitivePeerDependencies:
       - '@expo/dom-webview'
@@ -6718,7 +6718,7 @@ snapshots:
       react: 19.2.3
     optionalDependencies:
       '@expo/metro-runtime': 57.0.16(@expo/log-box@57.0.4)(expo@57.0.25)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
-      expo-router: 57.0.23(77db04033bf1da4d903c743e71f70d3f)
+      expo-router: 57.0.23(ef1638035450a71f8aa980955f37e057)
       react-dom: 19.2.3(react@19.2.3)
     transitivePeerDependencies:
       - supports-color
@@ -7555,67 +7555,67 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
-  '@supabase/auth-js@2.117.2':
+  '@supabase/auth-js@2.118.0':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/cli-darwin-arm64@2.118.0':
+  '@supabase/cli-darwin-arm64@2.121.0':
     optional: true
 
-  '@supabase/cli-darwin-x64@2.118.0':
+  '@supabase/cli-darwin-x64@2.121.0':
     optional: true
 
-  '@supabase/cli-linux-arm64-musl@2.118.0':
+  '@supabase/cli-linux-arm64-musl@2.121.0':
     optional: true
 
-  '@supabase/cli-linux-arm64@2.118.0':
+  '@supabase/cli-linux-arm64@2.121.0':
     optional: true
 
-  '@supabase/cli-linux-x64-musl@2.118.0':
+  '@supabase/cli-linux-x64-musl@2.121.0':
     optional: true
 
-  '@supabase/cli-linux-x64@2.118.0':
+  '@supabase/cli-linux-x64@2.121.0':
     optional: true
 
-  '@supabase/cli-windows-arm64@2.118.0':
+  '@supabase/cli-windows-arm64@2.121.0':
     optional: true
 
-  '@supabase/cli-windows-x64@2.118.0':
+  '@supabase/cli-windows-x64@2.121.0':
     optional: true
 
-  '@supabase/functions-js@2.117.2':
+  '@supabase/functions-js@2.118.0':
     dependencies:
       tslib: 2.8.1
 
   '@supabase/phoenix@0.4.5': {}
 
-  '@supabase/postgrest-js@2.117.2':
+  '@supabase/postgrest-js@2.118.0':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/realtime-js@2.117.2':
+  '@supabase/realtime-js@2.118.0':
     dependencies:
       '@supabase/phoenix': 0.4.5
       tslib: 2.8.1
 
-  '@supabase/storage-js@2.117.2':
+  '@supabase/storage-js@2.118.0':
     dependencies:
       iceberg-js: 0.8.1
       tslib: 2.8.1
 
-  '@supabase/supabase-js@2.117.2':
+  '@supabase/supabase-js@2.118.0':
     dependencies:
-      '@supabase/auth-js': 2.117.2
-      '@supabase/functions-js': 2.117.2
-      '@supabase/postgrest-js': 2.117.2
-      '@supabase/realtime-js': 2.117.2
-      '@supabase/storage-js': 2.117.2
+      '@supabase/auth-js': 2.118.0
+      '@supabase/functions-js': 2.118.0
+      '@supabase/postgrest-js': 2.118.0
+      '@supabase/realtime-js': 2.118.0
+      '@supabase/storage-js': 2.118.0
 
   '@szmarczak/http-timer@4.0.6':
     dependencies:
       defer-to-connect: 2.0.1
 
-  '@testing-library/react-native@14.0.1(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(test-renderer@1.3.0(@types/react@19.2.18)(react@19.2.3))':
+  '@testing-library/react-native@14.1.0(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(test-renderer@1.3.0(@types/react@19.2.18)(react@19.2.3))':
     dependencies:
       jest-matcher-utils: 30.5.2
       picocolors: 1.1.1
@@ -9140,7 +9140,7 @@ snapshots:
     dependencies:
       react-native: 0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
 
-  expo-router@57.0.23(77db04033bf1da4d903c743e71f70d3f):
+  expo-router@57.0.23(ef1638035450a71f8aa980955f37e057):
     dependencies:
       '@expo/log-box': 57.0.4(@expo/dom-webview@57.0.1)(expo@57.0.25)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       '@expo/metro-runtime': 57.0.16(@expo/log-box@57.0.4)(expo@57.0.25)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -9176,7 +9176,7 @@ snapshots:
       standard-navigation: 0.0.5
       vaul: 1.1.2(@types/react@19.2.18)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
     optionalDependencies:
-      '@testing-library/react-native': 14.0.1(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(test-renderer@1.3.0(@types/react@19.2.18)(react@19.2.3))
+      '@testing-library/react-native': 14.1.0(jest@30.5.2(@types/node@26.6.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(test-renderer@1.3.0(@types/react@19.2.18)(react@19.2.3))
       react-dom: 19.2.3(react@19.2.3)
       react-native-gesture-handler: 2.32.0(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       react-native-reanimated: 4.5.1(react-native-worklets@0.10.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -11330,11 +11330,11 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  playwright-core@1.63.0: {}
+  playwright-core@1.64.1: {}
 
-  playwright@1.63.0:
+  playwright@1.64.1:
     dependencies:
-      playwright-core: 1.63.0
+      playwright-core: 1.64.1
 
   plist@3.1.1:
     dependencies:
@@ -11358,7 +11358,7 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier@3.9.9: {}
+  prettier@3.9.10: {}
 
   pretty-format@29.7.0:
     dependencies:
@@ -12044,19 +12044,19 @@ snapshots:
 
   styleq@0.1.3: {}
 
-  supabase@2.118.0:
+  supabase@2.121.0:
     dependencies:
       eciesjs: 0.5.0
       jose: 6.2.12
     optionalDependencies:
-      '@supabase/cli-darwin-arm64': 2.118.0
-      '@supabase/cli-darwin-x64': 2.118.0
-      '@supabase/cli-linux-arm64': 2.118.0
-      '@supabase/cli-linux-arm64-musl': 2.118.0
-      '@supabase/cli-linux-x64': 2.118.0
-      '@supabase/cli-linux-x64-musl': 2.118.0
-      '@supabase/cli-windows-arm64': 2.118.0
-      '@supabase/cli-windows-x64': 2.118.0
+      '@supabase/cli-darwin-arm64': 2.121.0
+      '@supabase/cli-darwin-x64': 2.121.0
+      '@supabase/cli-linux-arm64': 2.121.0
+      '@supabase/cli-linux-arm64-musl': 2.121.0
+      '@supabase/cli-linux-x64': 2.121.0
+      '@supabase/cli-linux-x64-musl': 2.121.0
+      '@supabase/cli-windows-arm64': 2.121.0
+      '@supabase/cli-windows-x64': 2.121.0
 
   supports-color@5.5.0:
     dependencies:
@@ -12506,7 +12506,7 @@ snapshots:
 
   zod@3.25.76: {}
 
-  zustand@5.0.15(@types/react@19.2.18)(react@19.2.3):
+  zustand@5.0.16(@types/react@19.2.18)(react@19.2.3):
     optionalDependencies:
       '@types/react': 19.2.18
       react: 19.2.3
