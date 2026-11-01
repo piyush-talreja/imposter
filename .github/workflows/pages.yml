@@ -31,7 +31,7 @@ jobs:
           EXPO_BASE_URL: /${{ github.event.repository.name }}
       # Pages has no SPA fallback: serve the app for unknown paths (refreshing on /setup).
       - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
